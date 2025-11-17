@@ -28,12 +28,20 @@
 Using Kiro's AI-powered development capabilities (specs, steering, hooks, MCP, vibe coding), we built a complete SAP modernization platform that:
 
 ✅ **Understands** 40-year-old ABAP code
-✅ **Transforms** it to modern TypeScript/Python
-✅ **Preserves** 100% of business logic
-✅ **Validates** automatically with hooks
-✅ **Deploys** to cloud (AWS/Azure/GCP)
+✅ **Transforms** it to modern **SAP CAP (Cloud Application Programming Model)**
+✅ **Deploys** to **SAP BTP (Business Technology Platform)** on AWS/Azure/GCP
+✅ **Preserves** 100% of business logic + stays in SAP ecosystem
+✅ **Generates** CDS data models + OData V4 APIs automatically
+✅ **Validates** with hooks + CAP testing framework
 
-**From dead legacy code to living modern apps. In minutes, not years.**
+**The key insight:** Don't abandon SAP—modernize **within** the SAP ecosystem!
+
+- **ABAP** (1983, dead) → **SAP CAP** (modern, cloud-native)
+- Proprietary DB → **SAP HANA Cloud** or PostgreSQL
+- Custom code → **CDS models** + **OData V4 APIs**
+- On-premise → **SAP BTP** (runs on AWS/Azure/GCP)
+
+**From dead legacy ABAP to living modern SAP cloud apps. In minutes, not years.**
 
 ---
 
@@ -54,11 +62,13 @@ This document shows the **real workflow** of how Kiro:
 
 ## 🎃 Hackathon Category: Resurrection
 
-**Perfect fit:** Bringing ABAP (1983) back to life with modern technology.
+**Perfect fit:** Bringing ABAP (1983) back to life with modern SAP cloud technology.
 
-- **Dead Tech:** SAP ABAP, a language developers avoid
-- **Resurrection:** AI-powered transformation to TypeScript/React
+- **Dead Tech:** SAP ABAP (1983), a language developers avoid
+- **Resurrection:** AI-powered transformation to **SAP CAP + BTP**
+- **Strategy:** Stay in SAP ecosystem, modernize stack
 - **Impact:** $200B+ market, saves enterprises $5-50M per migration
+- **AWS/Cloud:** SAP BTP runs on AWS, Azure, GCP
 
 ---
 
