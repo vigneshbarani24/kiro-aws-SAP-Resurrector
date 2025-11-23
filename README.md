@@ -9,6 +9,18 @@
 
 ---
 
+## 🚀 **READY TO BUILD? START HERE!**
+
+**📖 Complete Build Guide:** [GETTING_STARTED.md](./GETTING_STARTED.md) - Everything from setup to submission!
+
+**⏱️ 3-Day Timeline:** [TIMELINE.md](./TIMELINE.md) - Day-by-day plan to win
+
+**📋 Submission Template:** [SUBMISSION_TEMPLATE.md](./SUBMISSION_TEMPLATE.md) - Copy/paste for hackathon
+
+**🎬 See Kiro in Action:** [DEMO_KIRO_IN_ACTION.md](./DEMO_KIRO_IN_ACTION.md) - How Kiro actually uses features
+
+---
+
 ## 🎯 The Challenge: SAP's Legacy Crisis
 
 **SAP ABAP** (created 1983) powers critical business systems at **25,000+ enterprises**:
