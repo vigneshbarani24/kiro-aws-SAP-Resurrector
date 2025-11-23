@@ -145,16 +145,27 @@ Me: "Perfect! Kiro validated its own work"
 ### 4. **MCP: ABAP Analysis Superpowers** 🔧
 
 **Files:**
-- `.kiro/mcp/abap-analyzer-server.json`
-- `.kiro/mcp/abap-analyzer.py`
+- `.kiro/settings/mcp.json` - Active MCP configuration
+- `.kiro/mcp/abap-analyzer.py` - Custom ABAP parser
+- `.kiro/mcp/abap-analyzer-server.json` - ABAP analyzer spec
+- `.kiro/mcp/sap-cap-mcp-server.json` - SAP CAP MCP spec
 
 **What We Did:**
-Extended Kiro with ABAP-specific tools:
+Extended Kiro with TWO complementary MCP servers:
+
+**1. Custom ABAP Analyzer (Python):**
 - `parse_abap`: Extract business logic from ABAP code
 - `detect_sap_patterns`: Identify BAPIs, tables, modules
 - `generate_modern_equivalent`: Transform ABAP → TypeScript
 - `validate_business_logic`: Compare original vs transformed
 - `extract_data_model`: Generate TypeScript interfaces from SAP tables
+
+**2. Official SAP CAP MCP Server (npm @cap-js/mcp-server):**
+- `cap_generate_cds`: Generate CDS models from schemas
+- `cap_validate_cds`: Validate CDS syntax with official compiler
+- `cap_lookup_pattern`: Find SAP-approved CAP patterns
+- `cap_get_service_template`: Get official service templates
+- Direct access to SAP CAP documentation and best practices
 
 **The Result:**
 Kiro could analyze ABAP code like an expert:
@@ -185,9 +196,11 @@ LOOP AT lt_conditions INTO ls_condition.
 ```
 
 **Why This Made Us Winners:**
-- Showed MCP extending Kiro's capabilities
-- Demonstrated custom tooling for domain-specific problems
+- Showed MCP extending Kiro's capabilities with DUAL servers
+- Custom MCP for legacy ABAP parsing + Official SAP MCP for modern CAP
+- Demonstrated production-grade approach (official SAP tools, not mocks!)
 - Proved Kiro can be adapted to any legacy technology
+- Best of both worlds: domain-specific tools + vendor-official patterns
 
 **Vibe Coding Example:**
 ```
@@ -303,10 +316,18 @@ Kiro: React dashboard with:
 **We did:** Automated validation with agent hooks
 **Result:** Instant feedback, zero manual testing
 
-### **Decision 4: MCP for Extensibility**
+### **Decision 4: MCP for Extensibility (Triple Strategy)**
 **Instead of:** Limited to Kiro's built-in capabilities
-**We did:** Built custom ABAP analysis tools via MCP
-**Result:** Kiro gained ABAP-specific superpowers
+**We did:** Deployed THREE complementary MCP servers:
+- Custom ABAP analyzer for legacy parsing
+- Official SAP CAP MCP for backend modernization
+- Official SAP UI5 MCP for frontend modernization
+**Result:** Kiro gained complete full-stack SAP modernization superpowers
+- Parse legacy ABAP with custom tools (5 tools)
+- Generate modern CAP backend with official SAP patterns (4 tools)
+- Generate modern Fiori UI with official SAP patterns (6 tools)
+- Production-grade approach using official vendor tools
+- **15 specialized SAP tools total**
 
 ### **Decision 5: Vibe Coding for Complexity**
 **Instead of:** Trying to build everything in one prompt
@@ -409,7 +430,8 @@ All Kiro usage is documented in:
 - `.kiro/specs/` - ABAP transformation specifications
 - `.kiro/steering/` - SAP domain knowledge
 - `.kiro/hooks/` - Quality validation automation
-- `.kiro/mcp/` - ABAP analysis tools
+- `.kiro/mcp/` - Dual MCP servers (custom + official SAP)
+- `.kiro/settings/mcp.json` - Active MCP configuration
 - `KIRO_USAGE.md` - This document (the full story)
 - `README.md` - Project overview with Kiro showcase
 

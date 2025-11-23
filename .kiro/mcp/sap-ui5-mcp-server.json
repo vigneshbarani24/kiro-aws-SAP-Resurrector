@@ -1,0 +1,195 @@
+{
+  "name": "sap-ui5-mcp-server",
+  "version": "1.0.0",
+  "description": "Official SAP UI5 MCP Server for Fiori UI development",
+  "repository": "https://github.com/ui5/mcp-server",
+  "mcpVersion": "1.0",
+  "capabilities": {
+    "officialSapIntegration": true,
+    "resources": [
+      {
+        "uri": "ui5://documentation",
+        "name": "SAP UI5 Official Documentation",
+        "description": "Complete UI5 framework documentation from SAP",
+        "source": "https://ui5.sap.com/",
+        "mimeType": "text/markdown"
+      },
+      {
+        "uri": "ui5://controls",
+        "name": "UI5 Control Library",
+        "description": "Complete reference of UI5 controls and components",
+        "source": "https://ui5.sap.com/#/controls",
+        "mimeType": "text/markdown"
+      },
+      {
+        "uri": "ui5://fiori-elements",
+        "name": "SAP Fiori Elements",
+        "description": "Fiori Elements templates and patterns",
+        "source": "https://ui5.sap.com/#/topic/03265b0408e2432c9571d6b3feb6b1fd",
+        "mimeType": "text/markdown"
+      },
+      {
+        "uri": "ui5://best-practices",
+        "name": "UI5 Best Practices",
+        "description": "SAP recommended patterns for UI5 development",
+        "source": "https://ui5.sap.com/#/topic/28fcd55b04654977b63dacbee0552712",
+        "mimeType": "text/markdown"
+      }
+    ],
+    "tools": [
+      {
+        "name": "ui5_get_component",
+        "description": "Get UI5 component template with routing and manifest",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "componentName": {
+              "type": "string",
+              "description": "Name of the UI5 component"
+            },
+            "namespace": {
+              "type": "string",
+              "description": "Application namespace"
+            }
+          },
+          "required": ["componentName"]
+        }
+      },
+      {
+        "name": "ui5_lookup_control",
+        "description": "Look up UI5 control documentation and usage",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "controlName": {
+              "type": "string",
+              "description": "UI5 control name (e.g., 'sap.m.Table', 'sap.ui.table.Table')"
+            }
+          },
+          "required": ["controlName"]
+        }
+      },
+      {
+        "name": "ui5_generate_view",
+        "description": "Generate UI5 XML view with controls",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "viewName": {
+              "type": "string",
+              "description": "Name of the view"
+            },
+            "viewType": {
+              "type": "string",
+              "enum": ["list", "detail", "form", "custom"],
+              "description": "Type of view to generate"
+            },
+            "entityType": {
+              "type": "string",
+              "description": "OData entity type for data binding"
+            }
+          },
+          "required": ["viewName", "viewType"]
+        }
+      },
+      {
+        "name": "ui5_generate_controller",
+        "description": "Generate UI5 controller with event handlers",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "controllerName": {
+              "type": "string",
+              "description": "Name of the controller"
+            },
+            "events": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of events to handle"
+            }
+          },
+          "required": ["controllerName"]
+        }
+      },
+      {
+        "name": "ui5_get_fiori_template",
+        "description": "Get SAP Fiori Elements template",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "templateType": {
+              "type": "string",
+              "enum": ["list-report", "worklist", "analytical-list", "overview-page"],
+              "description": "Fiori Elements template type"
+            },
+            "odataService": {
+              "type": "string",
+              "description": "OData service URL"
+            }
+          },
+          "required": ["templateType"]
+        }
+      },
+      {
+        "name": "ui5_validate_manifest",
+        "description": "Validate UI5 manifest.json structure",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "manifest": {
+              "type": "object",
+              "description": "Manifest.json content to validate"
+            }
+          },
+          "required": ["manifest"]
+        }
+      }
+    ]
+  },
+  "installation": {
+    "npm": "@ui5/mcp-server",
+    "command": "npm install -g @ui5/mcp-server",
+    "docs": "https://github.com/ui5/mcp-server#readme"
+  },
+  "usage": {
+    "start": "ui5-mcp-server",
+    "config": "~/.config/mcp/sap-ui5-server.json",
+    "integration": "Add to Kiro MCP configuration"
+  },
+  "kiro_integration": {
+    "purpose": "Official SAP UI5 MCP server provides Fiori UI generation for modernized ABAP applications",
+    "completes_stack": {
+      "backend": "SAP CAP (from @cap-js/mcp-server)",
+      "frontend": "SAP UI5/Fiori (from @ui5/mcp-server)",
+      "legacy": "ABAP parsing (from custom analyzer)"
+    },
+    "why_needed": [
+      "ABAP applications have SAPGUI screens that need modern UI",
+      "SAP Fiori is the standard modern SAP UI framework",
+      "UI5 integrates seamlessly with CAP OData services",
+      "Completes the full-stack modernization story"
+    ],
+    "workflow": [
+      "1. Parse ABAP screens/dynpros (custom analyzer)",
+      "2. Transform backend to CAP with OData (CAP MCP)",
+      "3. Generate Fiori UI consuming OData (UI5 MCP)",
+      "4. Result: Complete modern SAP application"
+    ],
+    "example_transformation": {
+      "abap_screen": "SAPGUI transaction with table display",
+      "modern_ui": "Fiori List Report with responsive table",
+      "data_binding": "OData V4 from CAP service",
+      "user_experience": "Modern, mobile-ready, accessible"
+    }
+  },
+  "advantages": {
+    "official_sap": "Not a mock - real SAP UI5 tools",
+    "fiori_elements": "Pre-built templates for common patterns",
+    "odata_integration": "Seamless CAP service consumption",
+    "responsive": "Mobile-ready out of the box",
+    "accessible": "WCAG compliant",
+    "theme_support": "SAP Fiori themes (Quartz, Horizon)"
+  }
+}

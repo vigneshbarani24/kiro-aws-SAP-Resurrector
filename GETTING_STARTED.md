@@ -76,7 +76,7 @@ ls -la .kiro/
 ├── hooks/
 │   ├── validate-transformation.sh
 │   └── pre-commit.sh
-└── mcp/
+└── mcp/`
     ├── abap-analyzer.py
     ├── sap-cap-mcp-server.json
     └── README.md

@@ -497,7 +497,7 @@ kiroween-hackathon/
 ✅ **Specs:** Complete ABAP syntax + transformation rules
 ✅ **Steering:** 40 years of SAP domain knowledge documented
 ✅ **Hooks:** Automated quality validation + pre-commit checks
-✅ **MCP:** Custom ABAP analysis tools (5 capabilities)
+✅ **MCP:** Dual strategy - Custom ABAP analyzer + Official SAP CAP MCP (9 tools total)
 ✅ **Vibe Coding:** Documented development journey
 ✅ **Expert-level usage of ALL Kiro features**
 
@@ -525,8 +525,11 @@ Steering docs give Kiro 40 years of SAP expertise in seconds.
 ### 4. **Autonomous Quality Validation**
 Hooks make Kiro self-validating, catching business logic errors automatically.
 
-### 5. **Extensible Analysis**
-MCP enables custom tools for any legacy technology, not just ABAP.
+### 5. **Dual MCP Strategy**
+Custom ABAP parser + Official SAP CAP MCP = Complete modernization pipeline.
+- Custom tools for legacy parsing (domain-specific)
+- Official vendor tools for modern generation (production-grade)
+- 9 specialized SAP tools available to Kiro
 
 ---
 

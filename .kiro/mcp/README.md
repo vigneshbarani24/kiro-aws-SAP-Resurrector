@@ -4,7 +4,7 @@ This directory contains **two complementary MCP servers** that give Kiro complet
 
 ---
 
-## 🎯 Dual MCP Strategy
+## 🎯 Triple MCP Strategy (Full-Stack SAP Modernization)
 
 ### 1. Custom ABAP Analyzer (abap-analyzer.py)
 **Purpose:** Parse and analyze legacy ABAP code
@@ -18,7 +18,7 @@ This directory contains **two complementary MCP servers** that give Kiro complet
 
 **Implementation:** Python-based custom MCP server
 
-### 2. Official SAP CAP MCP Server (sap-cap-mcp-server.json)
+### 2. Official SAP CAP MCP Server (@cap-js/mcp-server)
 **Purpose:** Provide authoritative SAP CAP knowledge and patterns
 
 **Source:** https://github.com/cap-js/mcp-server (Official SAP)
@@ -32,37 +32,69 @@ This directory contains **two complementary MCP servers** that give Kiro complet
 
 **Implementation:** Official SAP MCP server (npm package)
 
+### 3. Official SAP UI5 MCP Server (@ui5/mcp-server)
+**Purpose:** Generate modern SAP Fiori UI for transformed applications
+
+**Source:** https://github.com/ui5/mcp-server (Official SAP)
+
+**What it does:**
+- Official SAP UI5/Fiori documentation
+- UI5 control library reference
+- Fiori Elements templates
+- View and controller generation
+- Manifest.json validation
+
+**Implementation:** Official SAP MCP server (npm package)
+
 ---
 
-## 🦸 How Kiro Uses Both
+## 🦸 How Kiro Uses All Three
 
-### The Workflow:
+### The Complete Workflow:
 
 ```
-Legacy ABAP Code
+Legacy ABAP Application
+   (Business Logic + SAPGUI Screens)
        ↓
 1️⃣ Custom ABAP Analyzer (abap-analyzer.py)
    → Parses ABAP syntax
    → Extracts business logic
    → Identifies SAP patterns
    → Detects data structures
+   → Analyzes screen layouts
        ↓
 2️⃣ Kiro AI Processing
    → Understands ABAP semantics
    → Maps to modern equivalents
    → Preserves business rules
+   → Plans UI transformation
        ↓
 3️⃣ Official SAP CAP MCP (@cap-js/mcp-server)
    → Provides CAP templates
    → Validates CDS syntax
    → Suggests best practices
-   → Generates SAP-standard code
+   → Generates backend code
        ↓
-Modern SAP CAP Application
+4️⃣ Official SAP UI5 MCP (@ui5/mcp-server)
+   → Provides Fiori templates
+   → Generates UI5 views
+   → Creates controllers
+   → Validates manifest.json
+       ↓
+Modern SAP Full-Stack Application
+   Backend:
    → CDS data models
    → OData V4 APIs
    → CAP service handlers
-   → BTP deployment ready
+   
+   Frontend:
+   → SAP Fiori UI
+   → Responsive design
+   → Mobile-ready
+   
+   Deployment:
+   → SAP BTP ready
+   → Cloud-native
 ```
 
 ---
@@ -78,39 +110,76 @@ node --version
 python3 --version
 ```
 
-### 1. Install Official SAP CAP MCP Server
+### ✅ CONFIGURED AND READY!
 
-```bash
-# Install from npm (official SAP package)
-npm install -g @cap-js/mcp-server
+All three MCP servers are configured in `.kiro/settings/mcp.json`:
 
-# Verify installation
-cap-mcp-server --version
-```
-
-**Configuration:**
 ```json
-// ~/.config/mcp/sap-cap-server.json
 {
   "mcpServers": {
+    "abap-analyzer": {
+      "command": "python3",
+      "args": [".kiro/mcp/abap-analyzer.py"],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "parse_abap",
+        "detect_sap_patterns",
+        "extract_data_model"
+      ]
+    },
     "sap-cap": {
-      "command": "cap-mcp-server",
-      "args": [],
-      "env": {}
+      "command": "npx",
+      "args": ["-y", "@cap-js/mcp-server"],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "cap_lookup_pattern",
+        "cap_validate_cds",
+        "cap_get_service_template"
+      ]
     }
   }
 }
+```
+
+### 1. Official SAP CAP MCP Server
+
+**Installation:** Uses `npx` to auto-install on first use (no manual install needed!)
+
+```bash
+# The configuration uses npx -y @cap-js/mcp-server
+# This automatically downloads and runs the latest version
+# No global installation required!
 ```
 
 ### 2. Custom ABAP Analyzer (Already Included)
 
 ```bash
 # The Python MCP server is already in this directory
-# No installation needed - runs via stdio
+# Configured to run via: python3 .kiro/mcp/abap-analyzer.py
 
 # Test it:
 python3 abap-analyzer.py
 ```
+
+### 🎯 Auto-Approved Tools
+
+For faster workflow, these tools are pre-approved:
+
+**ABAP Analyzer:**
+- `parse_abap` - Parse ABAP syntax
+- `detect_sap_patterns` - Identify SAP patterns
+- `extract_data_model` - Generate data models
+
+**SAP CAP:**
+- `cap_lookup_pattern` - Find CAP patterns
+- `cap_validate_cds` - Validate CDS syntax
+- `cap_get_service_template` - Get service templates
 
 ---
 
