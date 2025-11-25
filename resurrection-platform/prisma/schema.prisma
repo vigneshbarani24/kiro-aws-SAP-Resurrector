@@ -1,0 +1,208 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  email          String         @unique
+  name           String
+  githubUsername String?
+  slackUserId    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  
+  resurrections  Resurrection[]
+}
+
+model ABAPObject {
+  id             String        @id @default(uuid())
+  name           String
+  type           String        // FUNCTION, REPORT, CLASS, etc.
+  module         String        // SD, MM, FI, etc.
+  content        String        @db.Text
+  linesOfCode    Int
+  complexity     Int?
+  
+  // Analysis results
+  documentation  String?       @db.Text
+  businessLogic  Json?
+  dependencies   Json?
+  tables         Json?
+  
+  // Vector embedding for semantic search
+  embeddingId    String?       // Reference to Pinecone vector
+  
+  // Relationships
+  resurrectionId String?
+  resurrection   Resurrection? @relation(fields: [resurrectionId], references: [id])
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  
+  @@index([module])
+  @@index([type])
+}
+
+model Resurrection {
+  id                   String                  @id @default(uuid())
+  name                 String
+  description          String?
+  status               String                  // UPLOADED, ANALYZING, ANALYZED, TRANSFORMING, TRANSFORMED, DEPLOYED, FAILED
+  module               String
+  
+  // GitHub integration
+  githubRepo           String?
+  githubUrl            String?
+  githubMethod         String?                 // MCP_AUTO, MANUAL_PUSH, USER_PROVIDED
+  basUrl               String?
+  
+  // Deployment
+  deploymentUrl        String?
+  deploymentStatus     String?
+  
+  // Metrics
+  originalLOC          Int?
+  transformedLOC       Int?
+  locSaved             Int?
+  complexityScore      Float?
+  qualityScore         Float?
+  
+  // Relationships
+  userId               String
+  user                 User                    @relation(fields: [userId], references: [id])
+  abapObjects          ABAPObject[]
+  transformationLogs   TransformationLog[]
+  qualityReports       QualityReport[]
+  hookExecutions       HookExecution[]
+  slackNotifications   SlackNotification[]
+  githubActivities     GitHubActivity[]
+  
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  
+  @@index([status])
+  @@index([userId])
+  @@index([module])
+}
+
+model TransformationLog {
+  id             String       @id @default(uuid())
+  resurrectionId String
+  resurrection   Resurrection @relation(fields: [resurrectionId], references: [id])
+  
+  step           String       // ANALYZE, PLAN, GENERATE, VALIDATE, DEPLOY
+  mcpServer      String?
+  request        Json?
+  response       Json?
+  duration       Int?         // milliseconds
+  status         String       // STARTED, IN_PROGRESS, COMPLETED, FAILED
+  errorMessage   String?
+  
+  createdAt      DateTime     @default(now())
+  
+  @@index([resurrectionId])
+}
+
+model QualityReport {
+  id                     String       @id @default(uuid())
+  resurrectionId         String
+  resurrection           Resurrection @relation(fields: [resurrectionId], references: [id])
+  
+  overallScore           Float
+  syntaxValid            Boolean
+  cleanCoreCompliant     Boolean
+  businessLogicPreserved Boolean
+  testCoverage           Float?
+  issues                 Json?
+  recommendations        Json?
+  
+  createdAt              DateTime     @default(now())
+  
+  @@index([resurrectionId])
+}
+
+model HookExecution {
+  id             String        @id @default(uuid())
+  resurrectionId String?
+  resurrection   Resurrection? @relation(fields: [resurrectionId], references: [id])
+  
+  hookId         String
+  hookName       String
+  trigger        String
+  status         String        // TRIGGERED, RUNNING, COMPLETED, FAILED
+  executionLog   Json?
+  duration       Int?
+  
+  createdAt      DateTime      @default(now())
+  
+  @@index([resurrectionId])
+  @@index([hookId])
+}
+
+model SlackNotification {
+  id             String        @id @default(uuid())
+  resurrectionId String?
+  resurrection   Resurrection? @relation(fields: [resurrectionId], references: [id])
+  
+  channel        String
+  message        String        @db.Text
+  messageTs      String?       // Slack message timestamp
+  threadTs       String?       // For threaded replies
+  status         String
+  
+  createdAt      DateTime      @default(now())
+  
+  @@index([resurrectionId])
+}
+
+model GitHubActivity {
+  id             String        @id @default(uuid())
+  resurrectionId String?
+  resurrection   Resurrection? @relation(fields: [resurrectionId], references: [id])
+  
+  activity       String        // REPO_CREATED, COMMIT_PUSHED, ISSUE_CREATED, etc.
+  details        Json?
+  githubUrl      String?
+  
+  createdAt      DateTime      @default(now())
+  
+  @@index([resurrectionId])
+}
+
+model Redundancy {
+  id                 String   @id @default(uuid())
+  object1Id          String
+  object2Id          String
+  similarity         Float
+  recommendation     String?
+  potentialSavings   Int?
+  status             String   // DETECTED, REVIEWED, CONSOLIDATED, IGNORED
+  
+  createdAt          DateTime @default(now())
+  
+  @@index([object1Id])
+  @@index([object2Id])
+}
+
+model FitToStandardRecommendation {
+  id                   String   @id @default(uuid())
+  abapObjectId         String
+  standardAlternative  String   // BAPI name, transaction code
+  confidence           Float
+  description          String   @db.Text
+  implementationGuide  String?  @db.Text
+  potentialSavings     Int?
+  status               String   // RECOMMENDED, ACCEPTED, REJECTED, IMPLEMENTED
+  
+  createdAt            DateTime @default(now())
+  
+  @@index([abapObjectId])
+}

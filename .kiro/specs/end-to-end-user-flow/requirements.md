@@ -11,7 +11,8 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 
 ## Glossary
 
-- **Platform**: The SAP Nova AI Alternative web application - the intelligence engine
+- **Resurrection Platform**: The SAP Nova AI Alternative web application - the intelligence engine (primary system)
+- **Platform**: Short name for Resurrection Platform
 - **Resurrection**: A complete ABAP-to-CAP transformation resulting in a deployable CAP application
 - **Resurrection CAP App**: The generated SAP CAP project (CDS, services, UI, MTA) stored in GitHub
 - **Intelligence Dashboard**: Web UI for analyzing ABAP code, viewing dependencies, and Q&A
@@ -28,6 +29,8 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 - **SAP BAS**: SAP Business Application Studio - cloud IDE for CAP development
 - **Kiro Hooks**: Automated workflows triggered by resurrection lifecycle events
 - **Kiro Specs**: Spec-driven planning for complex resurrection projects
+- **Shadcn UI**: Modern React component library built on Radix UI and Tailwind CSS
+- **Halloween Theme**: Spooky seasonal design with dark colors, orange accents, and resurrection-themed elements
 
 ## Requirements
 
@@ -70,7 +73,24 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN resurrection CAP apps are generated THEN the system SHALL create complete CAP projects with all required files (CDS, services, UI, mta.yaml, package.json)
 10. WHEN resurrection repos are created THEN the system SHALL use GitHub MCP to automate repository creation, commits, and CI/CD setup
 
-### Requirement 2: MCP Server Integration
+### Requirement 3: Multi-Step LLM Workflow Architecture
+
+**User Story:** As a platform architect, I want the platform to use a multi-step LLM workflow for resurrections, so that transformations are orchestrated, transparent, and user-controlled.
+
+#### Acceptance Criteria
+
+1. WHEN a resurrection is initiated THEN the system SHALL execute a 5-step workflow: Analyze → Plan → Generate → Validate → Deploy
+2. WHEN Step 1 (Analyze) runs THEN the system SHALL use ABAP Analyzer MCP with LLM to parse code, extract business logic, and identify dependencies
+3. WHEN Step 2 (Plan) runs THEN the system SHALL use LLM with Kiro Specs knowledge to create a transformation plan with CDS models and architecture
+4. WHEN Step 3 (Generate) runs THEN the system SHALL use SAP CAP Generator MCP and UI5 Generator MCP with LLM to produce complete CAP application code
+5. WHEN Step 4 (Validate) runs THEN the system SHALL use Kiro Hooks to validate CDS syntax, CAP structure, and Clean Core compliance
+6. WHEN Step 5 (Deploy) runs THEN the system SHALL use GitHub MCP to create repository and commit all generated files
+7. WHEN each workflow step executes THEN the system SHALL display real-time progress with step name, status, and streaming output
+8. WHEN a workflow step fails THEN the system SHALL pause execution, show error details, and offer retry or skip options
+9. WHEN users review workflow THEN the system SHALL provide step-by-step breakdown with ability to inspect outputs at each stage
+10. WHEN workflow completes THEN the system SHALL send Slack notification with summary of all steps and final repository URL
+
+### Requirement 4: MCP Server Integration
 
 **User Story:** As a platform administrator, I want to configure and manage MCP servers, so that the platform has access to specialized AI capabilities for ABAP analysis and CAP generation.
 
@@ -87,7 +107,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN Slack MCP is used THEN the system SHALL send notifications for resurrection events (started, completed, failed, deployed)
 10. WHEN MCP servers are updated THEN the system SHALL support hot-reloading configuration without restart
 
-### Requirement 3: ABAP Code Upload and Analysis
+### Requirement 5: ABAP Code Upload and Analysis
 
 **User Story:** As a SAP developer, I want to upload ABAP code files and see intelligent analysis, so that I understand my custom code landscape before resurrection.
 
@@ -102,7 +122,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 7. WHEN errors occur THEN the system SHALL provide clear error messages with line numbers and suggestions
 8. WHEN upload completes THEN the system SHALL send Slack notification: "✅ 15 ABAP objects analyzed"
 
-### Requirement 4: Intelligence Dashboard
+### Requirement 6: Intelligence Dashboard
 
 **User Story:** As a SAP architect, I want an interactive dashboard to explore my ABAP code landscape, so that I can understand dependencies, redundancies, and fit-to-standard opportunities.
 
@@ -119,7 +139,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN a user selects objects THEN the system SHALL show "Start Resurrection" button with estimated transformation time
 10. WHEN dashboard actions occur THEN the system SHALL send Slack notifications to configured channels
 
-### Requirement 5: Conversational Q&A Interface
+### Requirement 7: Conversational Q&A Interface
 
 **User Story:** As a business analyst, I want to ask questions about ABAP code in natural language, so that I can understand functionality without reading code.
 
@@ -136,7 +156,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN Q&A is used THEN the system SHALL log questions for analytics
 10. WHEN significant insights are discovered THEN the system SHALL offer to share via Slack
 
-### Requirement 6: Resurrection Wizard
+### Requirement 8: Resurrection Wizard
 
 **User Story:** As a SAP developer, I want a guided wizard to configure my resurrection project, so that I make informed decisions about what to transform.
 
@@ -153,7 +173,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN the user confirms THEN the system SHALL show animated "Resurrection in Progress" with live MCP streaming updates
 10. WHEN wizard starts THEN the system SHALL send Slack notification: "🚀 New resurrection: sd-pricing-logic"
 
-### Requirement 7: MCP-Powered Resurrection Engine
+### Requirement 9: MCP-Powered Resurrection Engine
 
 **User Story:** As a SAP developer, I want the platform to use MCP servers to transform ABAP into production-ready CAP applications, so that I get accurate, deployable code.
 
@@ -170,7 +190,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN transformation completes THEN the system SHALL validate output: CDS syntax, CAP structure, completeness
 10. WHEN MCP errors occur THEN the system SHALL provide detailed logs and retry options
 
-### Requirement 8: GitHub Repository Creation (Multiple Options)
+### Requirement 10: GitHub Repository Creation (Multiple Options)
 
 **User Story:** As a SAP developer, I want flexible options for creating GitHub repositories for resurrections, so that I can choose between automated MCP creation or manual git push workflows.
 
@@ -192,7 +212,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 14. WHEN manual push is used THEN the system SHALL provide step-by-step wizard with copy-paste commands
 15. WHEN a user wants to update THEN the system SHALL create a new branch or version instead of overwriting
 
-### Requirement 9: Kiro Hooks for Automation
+### Requirement 11: Kiro Hooks for Automation
 
 **User Story:** As a quality engineer, I want automated hooks to validate resurrection quality, so that every CAP app meets standards without manual intervention.
 
@@ -209,7 +229,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN hooks execute THEN the system SHALL log all activity in resurrection dashboard
 10. WHEN deployment succeeds THEN the system SHALL trigger hook: "deployment-success" that sends Slack celebration and creates GitHub release
 
-### Requirement 10: Resurrection CAP App Structure
+### Requirement 12: Resurrection CAP App Structure
 
 **User Story:** As a DevOps engineer, I want each resurrection to be a complete, deployable CAP application, so that I can deploy to SAP BTP without additional configuration.
 
@@ -226,7 +246,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN README.md is created THEN the system SHALL include: setup instructions, local testing (`cds watch`), BTP deployment (`mbt build && cf deploy`)
 10. WHEN the CAP app is complete THEN the system SHALL validate it can be built locally: `npm install && cds build`
 
-### Requirement 11: SAP BAS Integration
+### Requirement 13: SAP BAS Integration
 
 **User Story:** As a SAP developer, I want to open resurrection repos directly in SAP Business Application Studio, so that I can continue development in SAP's cloud IDE.
 
@@ -243,7 +263,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN BAS workspace is configured THEN the system SHALL include launch configurations for debugging
 10. WHEN BAS integration is used THEN the system SHALL track usage analytics
 
-### Requirement 12: Resurrection Dashboard
+### Requirement 14: Resurrection Dashboard
 
 **User Story:** As a project manager, I want to track all resurrection projects in a dashboard, so that I can monitor progress and deployment status.
 
@@ -260,7 +280,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN a resurrection is archived THEN the system SHALL mark as archived but keep GitHub repo accessible
 10. WHEN dashboard loads THEN the system SHALL show aggregate metrics: total resurrections, total LOC saved, average quality score
 
-### Requirement 13: Kiro Specs for Complex Resurrections
+### Requirement 15: Kiro Specs for Complex Resurrections
 
 **User Story:** As a SAP architect, I want to use Kiro specs for complex resurrection projects, so that I can plan requirements, design, and tasks before transformation.
 
@@ -277,7 +297,7 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN spec is used THEN the system SHALL track task completion and show progress
 10. WHEN spec review is needed THEN the system SHALL provide summary: requirements coverage, task completion, quality metrics
 
-### Requirement 14: Batch Resurrection Processing
+### Requirement 16: Batch Resurrection Processing
 
 **User Story:** As a SAP architect, I want to process multiple ABAP files in batch, so that I can modernize large codebases efficiently.
 
@@ -294,7 +314,29 @@ This document defines the SAP Nova AI Alternative platform - an intelligent web 
 9. WHEN batch errors occur THEN the system SHALL create GitHub issues for failed resurrections
 10. WHEN batch finishes THEN the system SHALL display gallery view of all created resurrection repos
 
-### Requirement 15: Local Testing and Deployment
+### Requirement 17: Halloween Theme with Shadcn UI
+
+**User Story:** As a platform user, I want a spooky Halloween-themed interface built with Shadcn UI, so that the "resurrection" concept feels immersive and the platform has a unique, memorable aesthetic.
+
+#### Acceptance Criteria
+
+1. WHEN the platform loads THEN the system SHALL use Shadcn UI components for all UI elements (buttons, cards, dialogs, forms)
+2. WHEN the theme is applied THEN the system SHALL use a dark Halloween color palette: deep purple/black backgrounds, orange (#FF6B35) accents, ghost white (#F7F7FF) text
+3. WHEN resurrection actions occur THEN the system SHALL use spooky terminology: "Resurrect" (transform), "Graveyard" (archived), "Haunted" (errors), "Spectral Analysis" (code analysis)
+4. WHEN buttons are displayed THEN the system SHALL use Halloween-themed icons: 🎃 (start), 👻 (in-progress), ⚰️ (completed), 🦇 (failed)
+5. WHEN loading states appear THEN the system SHALL show animated Halloween elements: floating ghosts, pulsing jack-o'-lanterns, or swirling fog effects
+6. WHEN the landing page loads THEN the system SHALL feature a hero section with "Resurrect Your Legacy ABAP" tagline and spooky background gradients
+7. WHEN cards are used THEN the system SHALL apply subtle glow effects (orange/purple) and haunted border animations on hover
+8. WHEN the resurrection wizard runs THEN the system SHALL show a progress indicator styled as a "resurrection ritual" with mystical symbols
+9. WHEN notifications appear THEN the system SHALL use Halloween-themed toast messages with spooky sound effects (optional)
+10. WHEN the dashboard displays metrics THEN the system SHALL use Halloween-themed data visualizations: tombstone-shaped cards, spider web graphs, bat-wing progress bars
+11. WHEN typography is rendered THEN the system SHALL use a gothic/horror-inspired font for headings (e.g., Creepster, Nosifer) and clean sans-serif for body text
+12. WHEN the dependency graph is shown THEN the system SHALL style nodes as tombstones or coffins with ghostly connection lines
+13. WHEN errors occur THEN the system SHALL display "haunted" error states with red glowing effects and spooky error messages
+14. WHEN the platform is accessed in dark mode THEN the system SHALL enhance Halloween effects with deeper shadows and brighter glows
+15. WHEN seasonal toggle is available THEN the system SHALL allow switching between Halloween theme and standard professional theme
+
+### Requirement 18: Local Testing and Deployment
 
 **User Story:** As a SAP developer, I want clear instructions for testing resurrections locally and deploying to BTP, so that I can verify functionality before production.
 

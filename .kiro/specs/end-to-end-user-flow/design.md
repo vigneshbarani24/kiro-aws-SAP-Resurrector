@@ -8,11 +8,80 @@ This design document outlines the technical architecture for the SAP Nova AI Alt
 
 1. **Platform is NOT CAP** - Modern web stack (Next.js/Node.js/React) for flexibility and performance
 2. **Resurrections ARE CAP** - Each output is a complete, deployable SAP CAP application
-3. **MCP-Powered Intelligence** - Leverage specialized MCP servers for ABAP analysis and CAP generation
-4. **Enterprise-Class UX** - Stellar user experience with smooth flows and professional design
-5. **GitHub-First Workflow** - Every resurrection creates a GitHub repository (automated or manual)
-6. **Automation via Hooks** - Use Kiro hooks for quality validation and CI/CD setup
-7. **Flexible Deployment** - Platform can run on Vercel, AWS, or any Node.js environment
+3. **Multi-Step LLM Workflow** - Orchestrated 5-step workflow (Analyze → Plan → Generate → Validate → Deploy) with LLM + MCP servers
+4. **MCP-Powered Intelligence** - Leverage specialized MCP servers for ABAP analysis and CAP generation
+5. **Halloween-Themed UX** - Spooky, immersive design with Shadcn UI components and resurrection-themed elements
+6. **GitHub-First Workflow** - Every resurrection creates a GitHub repository (automated or manual)
+7. **Automation via Hooks** - Use Kiro hooks for quality validation and CI/CD setup
+8. **Flexible Deployment** - Platform can run on Vercel, AWS, or any Node.js environment
+
+### Multi-Step LLM Workflow Architecture
+
+The platform uses an orchestrated multi-step workflow where each step combines LLM intelligence with specialized MCP servers:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Resurrection Workflow                         │
+│                  (User-Initiated, LLM-Orchestrated)              │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 1: ANALYZE                                                  │
+│ ├─ Input: ABAP code                                             │
+│ ├─ Process: ABAP Analyzer MCP + LLM                             │
+│ ├─ Output: Business logic, dependencies, metadata               │
+│ └─ Duration: ~30 seconds                                        │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 2: PLAN                                                     │
+│ ├─ Input: Analysis results                                      │
+│ ├─ Process: LLM + Kiro Specs knowledge                          │
+│ ├─ Output: Transformation plan, CDS models, architecture        │
+│ └─ Duration: ~20 seconds                                        │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 3: GENERATE                                                 │
+│ ├─ Input: Transformation plan                                   │
+│ ├─ Process: CAP Generator MCP + UI5 Generator MCP + LLM         │
+│ ├─ Output: Complete CAP project (CDS, services, UI, configs)    │
+│ └─ Duration: ~60 seconds                                        │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 4: VALIDATE                                                 │
+│ ├─ Input: Generated CAP project                                 │
+│ ├─ Process: Kiro Hooks (syntax, structure, Clean Core)          │
+│ ├─ Output: Quality report, validation results                   │
+│ └─ Duration: ~15 seconds                                        │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 5: DEPLOY                                                   │
+│ ├─ Input: Validated CAP project                                 │
+│ ├─ Process: GitHub MCP (create repo, commit files)              │
+│ ├─ Output: GitHub repository URL, BAS deep link                 │
+│ └─ Duration: ~20 seconds                                        │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+                    ✅ Resurrection Complete
+                    📦 GitHub Repo Created
+                    💬 Slack Notification Sent
+```
+
+**Key Characteristics:**
+- **User-Initiated**: Users trigger each resurrection explicitly
+- **Transparent**: Real-time progress updates for each step
+- **Controllable**: Can pause, retry, or skip steps on errors
+- **Auditable**: Full logs of each step's inputs/outputs
+- **Not Agentic**: Platform orchestrates, doesn't make autonomous decisions
 
 ## Architecture
 
@@ -97,11 +166,12 @@ This design document outlines the technical architecture for the SAP Nova AI Alt
 **Frontend:**
 - Next.js 14+ (App Router) or React 18+ with Vite
 - TypeScript for type safety
-- Tailwind CSS or SAP Horizon theme for styling
-- Shadcn/ui or Material-UI for component library
+- Tailwind CSS with Halloween color palette
+- **Shadcn/ui** for component library (required for Halloween theme)
 - D3.js for dependency graph visualization
 - React Query for data fetching and caching
 - Zustand or Redux for state management
+- Framer Motion for spooky animations
 
 **Backend:**
 - Node.js 18+ with Express or Next.js API routes
@@ -129,6 +199,373 @@ This design document outlines the technical architecture for the SAP Nova AI Alt
 - AWS (EC2, ECS, Lambda)
 - Docker containers
 - Environment variables for configuration
+
+### Halloween Theme Design System
+
+**Design Philosophy:** The platform embraces the "resurrection" metaphor with a spooky, immersive Halloween theme built on Shadcn UI components.
+
+#### Color Palette
+
+```typescript
+// tailwind.config.ts
+const halloweenTheme = {
+  colors: {
+    // Primary Halloween Colors
+    'spooky-purple': {
+      50: '#f5f3ff',
+      100: '#ede9fe',
+      200: '#ddd6fe',
+      300: '#c4b5fd',
+      400: '#a78bfa',
+      500: '#8b5cf6',
+      600: '#7c3aed',
+      700: '#6d28d9',
+      800: '#5b21b6',
+      900: '#4c1d95',
+      950: '#2e1065',
+    },
+    'pumpkin-orange': {
+      DEFAULT: '#FF6B35',
+      light: '#FF8C61',
+      dark: '#E85A2A',
+    },
+    'ghost-white': '#F7F7FF',
+    'graveyard-black': '#0A0A0F',
+    'haunted-red': '#DC2626',
+    'mystical-green': '#10B981',
+    'fog-gray': '#6B7280',
+  },
+  backgroundImage: {
+    'spooky-gradient': 'linear-gradient(135deg, #2e1065 0%, #0A0A0F 100%)',
+    'resurrection-glow': 'radial-gradient(circle, rgba(255,107,53,0.2) 0%, transparent 70%)',
+  },
+  boxShadow: {
+    'orange-glow': '0 0 20px rgba(255, 107, 53, 0.5)',
+    'purple-glow': '0 0 20px rgba(139, 92, 246, 0.5)',
+    'haunted': '0 4px 20px rgba(220, 38, 38, 0.3)',
+  },
+}
+```
+
+#### Typography
+
+```typescript
+// fonts.ts
+import { Creepster, Inter, JetBrains_Mono } from 'next/font/google';
+
+const creepster = Creepster({ 
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-creepster',
+});
+
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+});
+
+// Usage:
+// Headings: font-creepster (spooky gothic)
+// Body: font-inter (clean, readable)
+// Code: font-mono (technical)
+```
+
+#### Shadcn UI Component Customization
+
+```typescript
+// components/ui/button.tsx (Halloween variant)
+const buttonVariants = cva(
+  "base-button-classes",
+  {
+    variants: {
+      variant: {
+        default: "bg-pumpkin-orange hover:bg-pumpkin-orange-dark text-ghost-white",
+        ghost: "hover:bg-spooky-purple-900/50 hover:text-pumpkin-orange",
+        haunted: "bg-haunted-red hover:shadow-haunted text-ghost-white",
+        spectral: "bg-spooky-purple-700 hover:shadow-purple-glow text-ghost-white",
+      }
+    }
+  }
+);
+
+// components/ui/card.tsx (Tombstone variant)
+const cardVariants = cva(
+  "rounded-lg border bg-card text-card-foreground shadow-sm",
+  {
+    variants: {
+      variant: {
+        default: "border-fog-gray",
+        tombstone: "border-spooky-purple-700 bg-gradient-to-b from-spooky-purple-950 to-graveyard-black hover:shadow-purple-glow transition-shadow",
+        coffin: "border-pumpkin-orange bg-graveyard-black hover:shadow-orange-glow",
+      }
+    }
+  }
+);
+```
+
+#### Spooky Terminology Mapping
+
+```typescript
+// lib/theme/terminology.ts
+export const SPOOKY_TERMS = {
+  // Actions
+  transform: 'Resurrect',
+  analyze: 'Spectral Analysis',
+  generate: 'Summon',
+  validate: 'Exorcise Bugs',
+  deploy: 'Release Spirit',
+  
+  // Status
+  inProgress: 'Haunting',
+  completed: 'Resurrected',
+  failed: 'Cursed',
+  archived: 'Graveyard',
+  
+  // UI Elements
+  dashboard: 'Crypt Dashboard',
+  wizard: 'Resurrection Ritual',
+  upload: 'Summon Code',
+  
+  // Notifications
+  success: '👻 Spirit Awakened',
+  error: '🦇 Dark Magic Failed',
+  warning: '⚠️ Haunted Warning',
+};
+```
+
+#### Halloween Icons & Emojis
+
+```typescript
+// components/icons/halloween-icons.tsx
+export const HalloweenIcons = {
+  start: '🎃',
+  inProgress: '👻',
+  completed: '⚰️',
+  failed: '🦇',
+  warning: '⚠️',
+  success: '✨',
+  loading: '🕸️',
+  graveyard: '🪦',
+  ritual: '🔮',
+  spectral: '💀',
+};
+
+// Usage in components
+<Button>
+  <span className="mr-2">{HalloweenIcons.start}</span>
+  Resurrect Code
+</Button>
+```
+
+#### Animated Components
+
+```typescript
+// components/animations/spooky-loader.tsx
+export function SpookyLoader() {
+  return (
+    <motion.div
+      className="relative w-20 h-20"
+      animate={{
+        rotate: 360,
+      }}
+      transition={{
+        duration: 2,
+        repeat: Infinity,
+        ease: "linear",
+      }}
+    >
+      <span className="text-4xl">👻</span>
+    </motion.div>
+  );
+}
+
+// components/animations/fog-effect.tsx
+export function FogEffect() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <motion.div
+        className="absolute w-full h-full bg-gradient-to-t from-spooky-purple-900/20 to-transparent"
+        animate={{
+          y: [0, -20, 0],
+          opacity: [0.3, 0.6, 0.3],
+        }}
+        transition={{
+          duration: 4,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+    </div>
+  );
+}
+
+// components/animations/pulsing-pumpkin.tsx
+export function PulsingPumpkin() {
+  return (
+    <motion.span
+      className="text-6xl inline-block"
+      animate={{
+        scale: [1, 1.2, 1],
+        filter: [
+          'drop-shadow(0 0 0px #FF6B35)',
+          'drop-shadow(0 0 20px #FF6B35)',
+          'drop-shadow(0 0 0px #FF6B35)',
+        ],
+      }}
+      transition={{
+        duration: 2,
+        repeat: Infinity,
+      }}
+    >
+      🎃
+    </motion.span>
+  );
+}
+```
+
+#### Themed UI Components
+
+```typescript
+// components/resurrection/tombstone-card.tsx
+export function TombstoneCard({ resurrection }: { resurrection: Resurrection }) {
+  return (
+    <Card variant="tombstone" className="relative overflow-hidden">
+      <FogEffect />
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="font-creepster text-2xl text-pumpkin-orange">
+            {resurrection.name}
+          </CardTitle>
+          <StatusBadge status={resurrection.status} />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <MetricRow icon="💀" label="LOC Saved" value={resurrection.locSaved} />
+          <MetricRow icon="🕸️" label="Complexity" value={resurrection.complexity} />
+          <MetricRow icon="✨" label="Quality" value={`${resurrection.qualityScore}%`} />
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button variant="spectral" className="w-full">
+          <span className="mr-2">👻</span>
+          View Resurrection
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+// components/resurrection/ritual-progress.tsx
+export function RitualProgress({ currentStep, steps }: RitualProgressProps) {
+  return (
+    <div className="relative">
+      <div className="flex justify-between mb-8">
+        {steps.map((step, index) => (
+          <motion.div
+            key={step.name}
+            className="flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <div
+              className={cn(
+                "w-16 h-16 rounded-full flex items-center justify-center text-3xl",
+                "border-2 transition-all duration-300",
+                index <= currentStep
+                  ? "border-pumpkin-orange bg-spooky-purple-900 shadow-orange-glow"
+                  : "border-fog-gray bg-graveyard-black"
+              )}
+            >
+              {step.icon}
+            </div>
+            <span className="mt-2 text-sm font-creepster text-ghost-white">
+              {step.name}
+            </span>
+          </motion.div>
+        ))}
+      </div>
+      <Progress value={(currentStep / steps.length) * 100} className="h-2" />
+    </div>
+  );
+}
+
+// components/dashboard/spider-web-graph.tsx
+export function SpiderWebGraph({ dependencies }: { dependencies: Dependency[] }) {
+  // D3.js visualization styled as spider web
+  // Nodes: tombstones/coffins
+  // Edges: ghostly connection lines with glow effect
+  // Hover: show haunted tooltip with details
+}
+```
+
+#### Landing Page Hero
+
+```typescript
+// app/page.tsx
+export default function LandingPage() {
+  return (
+    <div className="min-h-screen bg-spooky-gradient relative overflow-hidden">
+      <FogEffect />
+      
+      <div className="container mx-auto px-4 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <PulsingPumpkin />
+          
+          <h1 className="font-creepster text-7xl text-pumpkin-orange mt-8 mb-4">
+            Resurrect Your Legacy ABAP
+          </h1>
+          
+          <p className="text-xl text-ghost-white mb-8 max-w-2xl mx-auto">
+            Transform haunted ABAP code into modern SAP CAP applications. 
+            Bring your legacy systems back from the dead! 👻
+          </p>
+          
+          <div className="flex gap-4 justify-center">
+            <Button variant="spectral" size="lg">
+              <span className="mr-2">🎃</span>
+              Start Resurrection
+            </Button>
+            <Button variant="ghost" size="lg">
+              <span className="mr-2">📖</span>
+              View Grimoire (Docs)
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+```
+
+#### Theme Toggle
+
+```typescript
+// components/theme-toggle.tsx
+export function ThemeToggle() {
+  const [theme, setTheme] = useState<'halloween' | 'professional'>('halloween');
+  
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => setTheme(theme === 'halloween' ? 'professional' : 'halloween')}
+    >
+      {theme === 'halloween' ? '🎃 Spooky Mode' : '💼 Professional Mode'}
+    </Button>
+  );
+}
+```
 
 
 ## Components and Interfaces
@@ -263,9 +700,229 @@ The platform connects to 5 MCP servers for specialized capabilities:
 }
 ```
 
-### 2. MCP Orchestration Service
+### 2. Multi-Step Workflow Engine
 
-**Purpose:** Manage MCP server lifecycle and coordinate transformation workflows
+**Purpose:** Orchestrate the 5-step resurrection workflow with LLM + MCP integration
+
+```typescript
+// lib/workflow/resurrection-workflow.ts
+import { MCPOrchestrator } from '../mcp/orchestrator';
+import { LLMService } from '../llm/llm-service';
+import { HookManager } from '../hooks/hook-manager';
+
+export class ResurrectionWorkflow {
+  private mcpOrchestrator: MCPOrchestrator;
+  private llmService: LLMService;
+  private hookManager: HookManager;
+  
+  constructor() {
+    this.mcpOrchestrator = new MCPOrchestrator();
+    this.llmService = new LLMService();
+    this.hookManager = new HookManager();
+  }
+  
+  async execute(resurrectionId: string, abapCode: string): Promise<ResurrectionResult> {
+    const resurrection = await prisma.resurrection.findUnique({ where: { id: resurrectionId } });
+    
+    try {
+      // Step 1: ANALYZE
+      await this.updateStatus(resurrectionId, 'ANALYZING');
+      const analysis = await this.stepAnalyze(abapCode);
+      await this.logStep(resurrectionId, 'ANALYZE', analysis);
+      
+      // Step 2: PLAN
+      await this.updateStatus(resurrectionId, 'PLANNING');
+      const plan = await this.stepPlan(analysis);
+      await this.logStep(resurrectionId, 'PLAN', plan);
+      
+      // Step 3: GENERATE
+      await this.updateStatus(resurrectionId, 'GENERATING');
+      const capProject = await this.stepGenerate(plan);
+      await this.logStep(resurrectionId, 'GENERATE', capProject);
+      
+      // Step 4: VALIDATE
+      await this.updateStatus(resurrectionId, 'VALIDATING');
+      const validation = await this.stepValidate(capProject);
+      await this.logStep(resurrectionId, 'VALIDATE', validation);
+      
+      if (!validation.passed) {
+        throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      }
+      
+      // Step 5: DEPLOY
+      await this.updateStatus(resurrectionId, 'DEPLOYING');
+      const deployment = await this.stepDeploy(resurrectionId, capProject);
+      await this.logStep(resurrectionId, 'DEPLOY', deployment);
+      
+      // Mark complete
+      await this.updateStatus(resurrectionId, 'COMPLETED');
+      await this.hookManager.trigger('on-resurrection-complete', { resurrectionId });
+      
+      return {
+        analysis,
+        plan,
+        capProject,
+        validation,
+        deployment
+      };
+      
+    } catch (error) {
+      await this.updateStatus(resurrectionId, 'FAILED');
+      await this.hookManager.trigger('on-resurrection-failed', { resurrectionId, error });
+      throw error;
+    }
+  }
+  
+  // Step 1: Analyze ABAP code
+  private async stepAnalyze(abapCode: string): Promise<AnalysisResult> {
+    // Call ABAP Analyzer MCP
+    const mcpAnalysis = await this.mcpOrchestrator.analyzeABAP(abapCode, {
+      extractBusinessLogic: true,
+      identifyDependencies: true,
+      detectPatterns: true
+    });
+    
+    // Enhance with LLM
+    const llmEnhancement = await this.llmService.enhanceAnalysis(mcpAnalysis, {
+      generateDocumentation: true,
+      identifyComplexity: true,
+      suggestImprovements: true
+    });
+    
+    return {
+      ...mcpAnalysis,
+      ...llmEnhancement,
+      timestamp: new Date()
+    };
+  }
+  
+  // Step 2: Create transformation plan
+  private async stepPlan(analysis: AnalysisResult): Promise<TransformationPlan> {
+    // Use LLM with Kiro Specs knowledge to create plan
+    const plan = await this.llmService.createTransformationPlan(analysis, {
+      includeArchitecture: true,
+      includeCDSModels: true,
+      includeServiceDefinitions: true,
+      includeUIDesign: true
+    });
+    
+    return plan;
+  }
+  
+  // Step 3: Generate CAP application
+  private async stepGenerate(plan: TransformationPlan): Promise<CAPProject> {
+    // Generate CDS models
+    const cdsModels = await this.mcpOrchestrator.generateCDS(plan.cdsModels);
+    
+    // Generate services
+    const services = await this.mcpOrchestrator.generateServices(plan.services);
+    
+    // Generate UI
+    const ui = await this.mcpOrchestrator.generateUI(plan.uiDesign);
+    
+    // Generate supporting files with LLM
+    const packageJson = await this.llmService.generatePackageJson(plan);
+    const mtaYaml = await this.llmService.generateMTAYaml(plan);
+    const readme = await this.llmService.generateReadme(plan);
+    
+    return {
+      db: cdsModels,
+      srv: services,
+      app: ui,
+      packageJson,
+      mtaYaml,
+      readme,
+      xsSecurity: this.generateXSSecurity(plan),
+      gitignore: this.generateGitignore()
+    };
+  }
+  
+  // Step 4: Validate generated code
+  private async stepValidate(capProject: CAPProject): Promise<ValidationResult> {
+    // Trigger validation hooks
+    const hookResults = await this.hookManager.trigger('on-resurrection-validate', { capProject });
+    
+    // Run quality checks
+    const syntaxValid = await this.validateCDSSyntax(capProject.db);
+    const structureValid = await this.validateCAPStructure(capProject);
+    const cleanCoreCompliant = await this.validateCleanCore(capProject);
+    const businessLogicPreserved = await this.validateBusinessLogic(capProject);
+    
+    const passed = syntaxValid && structureValid && cleanCoreCompliant && businessLogicPreserved;
+    
+    return {
+      passed,
+      syntaxValid,
+      structureValid,
+      cleanCoreCompliant,
+      businessLogicPreserved,
+      errors: hookResults.errors || [],
+      warnings: hookResults.warnings || []
+    };
+  }
+  
+  // Step 5: Deploy to GitHub
+  private async stepDeploy(resurrectionId: string, capProject: CAPProject): Promise<DeploymentResult> {
+    const resurrection = await prisma.resurrection.findUnique({ where: { id: resurrectionId } });
+    
+    // Create GitHub repository
+    const repo = await this.mcpOrchestrator.createGitHubRepo({
+      name: `resurrection-${resurrection.name}-${Date.now()}`,
+      files: this.flattenCAPProject(capProject),
+      description: `Resurrected from ABAP: ${resurrection.description}`
+    });
+    
+    // Generate BAS deep link
+    const basUrl = this.generateBASLink(repo.url);
+    
+    // Update resurrection record
+    await prisma.resurrection.update({
+      where: { id: resurrectionId },
+      data: {
+        githubUrl: repo.url,
+        basUrl,
+        githubMethod: 'MCP_AUTO'
+      }
+    });
+    
+    // Send Slack notification
+    await this.mcpOrchestrator.notifySlack('#resurrections', resurrection, 'completed');
+    
+    return {
+      githubUrl: repo.url,
+      basUrl,
+      repoName: repo.name
+    };
+  }
+  
+  private async updateStatus(resurrectionId: string, status: string): Promise<void> {
+    await prisma.resurrection.update({
+      where: { id: resurrectionId },
+      data: { status }
+    });
+    
+    // Emit real-time update via WebSocket
+    this.emitProgress(resurrectionId, { status, timestamp: new Date() });
+  }
+  
+  private async logStep(resurrectionId: string, step: string, data: any): Promise<void> {
+    await prisma.transformationLog.create({
+      data: {
+        resurrectionId,
+        step,
+        request: data.input || {},
+        response: data.output || data,
+        status: 'COMPLETED',
+        duration: data.duration || 0
+      }
+    });
+  }
+}
+```
+
+### 3. MCP Orchestration Service
+
+**Purpose:** Manage MCP server lifecycle and coordinate MCP calls
 
 ```typescript
 // lib/mcp/orchestrator.ts
@@ -284,41 +941,28 @@ export class MCPOrchestrator {
     return await client.call('analyzeCode', { code: abapCode, context });
   }
   
-  async generateCAP(businessLogic: object): Promise<CAPProject> {
-    const capClient = this.clients.get('sap-cap-generator');
-    const ui5Client = this.clients.get('sap-ui5-generator');
-    
-    // Generate CDS models
-    const cdsModels = await capClient.call('generateCDSModels', { businessLogic });
-    
-    // Generate services
-    const services = await capClient.call('generateServiceDefinitions', { models: cdsModels });
-    
-    // Generate handlers
-    const handlers = await capClient.call('generateHandlers', { services });
-    
-    // Generate UI
-    const ui = await ui5Client.call('generateFioriElements', { 
-      service: services[0],
-      template: 'list-report'
-    });
-    
-    return {
-      db: cdsModels,
-      srv: { services, handlers },
-      app: ui,
-      packageJson: this.generatePackageJson(),
-      mtaYaml: this.generateMTAYaml()
-    };
+  async generateCDS(models: object): Promise<CDSFiles> {
+    const client = this.clients.get('sap-cap-generator');
+    return await client.call('generateCDSModels', { models });
   }
   
-  async createGitHubRepo(resurrection: Resurrection): Promise<RepoInfo> {
+  async generateServices(services: object): Promise<ServiceFiles> {
+    const client = this.clients.get('sap-cap-generator');
+    return await client.call('generateServiceDefinitions', { services });
+  }
+  
+  async generateUI(uiDesign: object): Promise<UIFiles> {
+    const client = this.clients.get('sap-ui5-generator');
+    return await client.call('generateFioriElements', { design: uiDesign });
+  }
+  
+  async createGitHubRepo(config: RepoConfig): Promise<RepoInfo> {
     const githubClient = this.clients.get('github');
     
     // Create repository
     const repo = await githubClient.call('createRepository', {
-      name: `resurrection-${resurrection.name}-${Date.now()}`,
-      description: resurrection.description,
+      name: config.name,
+      description: config.description,
       auto_init: true,
       private: false
     });
@@ -326,7 +970,7 @@ export class MCPOrchestrator {
     // Commit all files
     await githubClient.call('createOrUpdateFiles', {
       repo: repo.name,
-      files: resurrection.files,
+      files: config.files,
       message: '🔄 Resurrection: ABAP to CAP transformation complete'
     });
     
@@ -1001,57 +1645,89 @@ POST   /api/admin/config             // Update configuration
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
-### Property 1: MCP Invocation for ABAP Parsing
+### Property 1: Workflow Step Sequence
+*For any* resurrection execution, all 5 workflow steps must execute in order: ANALYZE → PLAN → GENERATE → VALIDATE → DEPLOY, with no steps skipped unless explicitly failed.
+**Validates: Requirements 3.1**
+
+### Property 2: Workflow Step Logging
+*For any* completed workflow step, a TransformationLog entry must be created with fields: resurrectionId, step, status, duration, and timestamp.
+**Validates: Requirements 3.7**
+
+### Property 3: MCP Invocation for ABAP Parsing
 *For any* ABAP code upload, the ABAP Analyzer MCP server must be invoked and return a parseable response or clear error.
-**Validates: Requirements 3.3**
-
-### Property 2: Documentation and Embedding Generation
-*For any* successfully parsed ABAP object, the system must generate both AI documentation (non-empty string) and vector embedding (1536 dimensions).
-**Validates: Requirements 3.4**
-
-### Property 3: Semantic Search Ranking
-*For any* search query, results must be ranked by relevance score in descending order (highest relevance first).
-**Validates: Requirements 4.5**
-
-### Property 4: Q&A Response Structure
-*For any* Q&A answer, the response must include a confidence level field (high/medium/low) and a sources array with at least one element when confidence is not low.
 **Validates: Requirements 5.3**
 
-### Property 5: CAP Package.json Completeness
+### Property 4: Workflow Failure Handling
+*For any* workflow step that fails, the resurrection status must be set to 'FAILED', error details must be logged, and the "on-resurrection-failed" hook must be triggered.
+**Validates: Requirements 3.8**
+
+### Property 5: Real-Time Progress Updates
+*For any* workflow step transition, a real-time progress update must be emitted with current step name, status, and timestamp.
+**Validates: Requirements 3.7**
+
+### Property 6: Documentation and Embedding Generation
+*For any* successfully parsed ABAP object, the system must generate both AI documentation (non-empty string) and vector embedding (1536 dimensions).
+**Validates: Requirements 5.4**
+
+### Property 7: Semantic Search Ranking
+*For any* search query, results must be ranked by relevance score in descending order (highest relevance first).
+**Validates: Requirements 6.5**
+
+### Property 8: Q&A Response Structure
+*For any* Q&A answer, the response must include a confidence level field (high/medium/low) and a sources array with at least one element when confidence is not low.
+**Validates: Requirements 7.3**
+
+### Property 9: CAP Package.json Completeness
 *For any* generated CAP project, the package.json must include all required dependencies: @sap/cds, @sap/xssec, and express.
-**Validates: Requirements 7.5**
+**Validates: Requirements 9.5**
 
-### Property 6: Transformation Output Validation
+### Property 10: Transformation Output Validation
 *For any* completed transformation, validation must run and return a report with fields: syntaxValid, cleanCoreCompliant, businessLogicPreserved.
-**Validates: Requirements 7.9**
+**Validates: Requirements 9.9**
 
-### Property 7: GitHub Repository File Completeness
+### Property 11: GitHub Repository File Completeness
 *For any* GitHub repository created via MCP, the repo must contain all required files: README.md, .gitignore, LICENSE, package.json, mta.yaml, and at least one CDS file.
-**Validates: Requirements 8.2**
+**Validates: Requirements 10.2**
 
-### Property 8: Git Commit Message Consistency
+### Property 12: Git Commit Message Consistency
 *For any* initial commit to a resurrection repository, the commit message must exactly match: "🔄 Resurrection: ABAP to CAP transformation complete".
-**Validates: Requirements 8.3**
+**Validates: Requirements 10.4**
 
-### Property 9: Hook Execution Guarantee
-*For any* resurrection that reaches "TRANSFORMED" status, the "on-resurrection-complete" hook must be triggered and logged in HookExecutions table.
-**Validates: Requirements 9.2**
+### Property 13: Hook Execution Guarantee
+*For any* resurrection that reaches "COMPLETED" status, the "on-resurrection-complete" hook must be triggered and logged in HookExecutions table.
+**Validates: Requirements 11.2**
 
-### Property 10: CAP Folder Structure Completeness
+### Property 14: CAP Folder Structure Completeness
 *For any* generated resurrection CAP application, the folder structure must include: db/, srv/, app/, and files: mta.yaml, package.json, xs-security.json.
-**Validates: Requirements 10.1**
-
-### Property 11: CAP Build Validation
-*For any* generated CAP application, running `npm install && cds build` must complete without errors (exit code 0).
-**Validates: Requirements 10.10**
-
-### Property 12: BAS Deep Link Format
-*For any* resurrection with a GitHub repository, the generated BAS deep link must follow the format: `https://bas.{region}.hana.ondemand.com/?gitClone={repo_url}` and be a valid URL.
-**Validates: Requirements 11.1**
-
-### Property 13: Dashboard Data Completeness
-*For any* dashboard load request, the response must include all resurrections for the authenticated user with fields: id, name, status, githubUrl, createdAt.
 **Validates: Requirements 12.1**
+
+### Property 15: CAP Build Validation
+*For any* generated CAP application, running `npm install && cds build` must complete without errors (exit code 0).
+**Validates: Requirements 12.10**
+
+### Property 16: BAS Deep Link Format
+*For any* resurrection with a GitHub repository, the generated BAS deep link must follow the format: `https://bas.{region}.hana.ondemand.com/?gitClone={repo_url}` and be a valid URL.
+**Validates: Requirements 13.1**
+
+### Property 17: Dashboard Data Completeness
+*For any* dashboard load request, the response must include all resurrections for the authenticated user with fields: id, name, status, githubUrl, createdAt.
+**Validates: Requirements 14.1**
+
+### Property 18: Shadcn UI Component Usage
+*For any* UI component rendered, it must use Shadcn UI base components (Button, Card, Dialog, Form, etc.) with Halloween theme variants.
+**Validates: Requirements 17.1**
+
+### Property 19: Halloween Color Palette Consistency
+*For any* page or component, colors must use the defined Halloween palette: spooky-purple backgrounds, pumpkin-orange accents, ghost-white text.
+**Validates: Requirements 17.2**
+
+### Property 20: Spooky Terminology Consistency
+*For any* user-facing text, resurrection-related actions must use spooky terminology: "Resurrect" (not "transform"), "Graveyard" (not "archived"), "Haunted" (not "error").
+**Validates: Requirements 17.3**
+
+### Property 21: Halloween Icon Presence
+*For any* resurrection status display, the appropriate Halloween icon must be shown: 🎃 (start), 👻 (in-progress), ⚰️ (completed), 🦇 (failed).
+**Validates: Requirements 17.4**
 
 ## Error Handling
 
