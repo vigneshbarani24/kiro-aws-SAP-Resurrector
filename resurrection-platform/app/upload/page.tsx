@@ -12,7 +12,7 @@ interface UploadedFile {
   name: string;
   size: number;
   type: string;
-  content?: string;
+  file: File;
 }
 
 export default function UploadPage() {
@@ -57,6 +57,7 @@ export default function UploadPage() {
           name: file.name,
           size: file.size,
           type: file.type || 'text/plain',
+          file: file,
         });
       }
     }
@@ -109,34 +110,90 @@ export default function UploadPage() {
     const uploadToastId = halloweenToast.upload.started();
 
     try {
-      // Simulate upload progress with ghost animation
-      for (let i = 0; i <= 100; i += 10) {
-        setUploadProgress(i);
-        await new Promise((resolve) => setTimeout(resolve, 200));
+      const uploadedObjectIds: string[] = [];
+      
+      // Upload each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadProgress(Math.round(((i + 0.5) / files.length) * 100));
+        
+        // Read file content
+        const fileInput = document.getElementById('file-input') as HTMLInputElement;
+        if (!fileInput?.files?.[i]) {
+          throw new Error(`File ${file.name} not found`);
+        }
+        
+        const actualFile = fileInput.files[i];
+        const formData = new FormData();
+        formData.append('file', actualFile);
+
+        // Upload to API
+        const response = await fetch('/api/abap/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Upload failed');
+        }
+
+        const result = await response.json();
+        uploadedObjectIds.push(result.object.id);
+        
+        setUploadProgress(Math.round(((i + 1) / files.length) * 100));
       }
 
-      // TODO: Actual API call to /api/abap/upload
-      const formData = new FormData();
-      files.forEach((file, index) => {
-        // In real implementation, we'd append actual File objects
-        formData.append(`file${index}`, file.name);
+      // Create resurrection with uploaded objects
+      const resurrectionName = files.length === 1 
+        ? files[0].name.replace(/\.[^/.]+$/, '')
+        : `Resurrection ${new Date().toLocaleDateString()}`;
+      
+      const resurrectionResponse = await fetch('/api/resurrections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: resurrectionName,
+          description: `Uploaded ${files.length} ABAP file(s)`,
+          module: 'CUSTOM', // Will be determined from files
+          abapObjectIds: uploadedObjectIds,
+        }),
       });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!resurrectionResponse.ok) {
+        const error = await resurrectionResponse.json();
+        throw new Error(error.message || 'Failed to create resurrection');
+      }
+
+      const resurrection = await resurrectionResponse.json();
 
       // Success notification
       halloweenToast.upload.success(files.length);
 
-      // Navigate to dashboard or next step
-      router.push('/dashboard');
+      // Start the transformation workflow automatically
+      const resurrectionId = resurrection.resurrection.id;
+      
+      try {
+        const startResponse = await fetch(`/api/resurrections/${resurrectionId}/start`, {
+          method: 'POST',
+        });
+
+        if (!startResponse.ok) {
+          console.warn('Failed to start workflow automatically');
+        }
+      } catch (error) {
+        console.warn('Failed to start workflow:', error);
+      }
+
+      // Navigate to resurrection detail page
+      router.push(`/resurrections/${resurrectionId}`);
     } catch (error) {
       console.error('Upload failed:', error);
       halloweenToast.error(
         '🦇 Upload Ritual Failed',
-        'The spirits rejected your offering. Please try again.'
+        error instanceof Error ? error.message : 'The spirits rejected your offering. Please try again.'
       );
-      setValidationErrors(['🔴 Haunted error: Upload failed. Please try again.']);
+      setValidationErrors([`🔴 Haunted error: ${error instanceof Error ? error.message : 'Upload failed'}`]);
     } finally {
       setUploading(false);
     }

@@ -40,6 +40,27 @@ export async function POST(request: NextRequest) {
     // Calculate total LOC
     const totalLOC = abapObjects.reduce((sum, obj) => sum + obj.linesOfCode, 0);
 
+    // Get or create default user
+    let defaultUserId = userId;
+    if (!defaultUserId) {
+      const defaultUser = await prisma.user.findUnique({
+        where: { email: 'default@resurrection.local' }
+      });
+      
+      if (!defaultUser) {
+        // Create default user if it doesn't exist
+        const newUser = await prisma.user.create({
+          data: {
+            email: 'default@resurrection.local',
+            name: 'Default User'
+          }
+        });
+        defaultUserId = newUser.id;
+      } else {
+        defaultUserId = defaultUser.id;
+      }
+    }
+
     // Create resurrection
     const resurrection = await prisma.resurrection.create({
       data: {
@@ -48,7 +69,7 @@ export async function POST(request: NextRequest) {
         status: 'UPLOADED',
         module,
         originalLOC: totalLOC,
-        userId: userId || 'default-user', // TODO: Get from auth session
+        userId: defaultUserId,
         abapObjects: {
           connect: abapObjectIds.map(id => ({ id }))
         }
@@ -96,11 +117,18 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || 'default-user'; // TODO: Get from auth session
     const status = searchParams.get('status');
     const module = searchParams.get('module');
 
-    const where: any = { userId };
+    // Get default user
+    const defaultUser = await prisma.user.findUnique({
+      where: { email: 'default@resurrection.local' }
+    });
+
+    const where: any = {};
+    if (defaultUser) {
+      where.userId = defaultUser.id;
+    }
     if (status) where.status = status;
     if (module) where.module = module;
 

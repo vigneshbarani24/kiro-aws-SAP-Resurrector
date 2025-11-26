@@ -10,6 +10,8 @@
 import { PrismaClient } from '@prisma/client';
 import { MCPOrchestrator, AnalysisResult, CDSFiles, ServiceFiles, UIFiles, RepoInfo } from '../mcp/orchestrator';
 import { LLMService } from '../llm/llm-service';
+import { KiroSpecGenerator, ABAPAnalysis } from '../specs/kiro-spec-generator';
+import { HookManager } from '../hooks/hook-manager';
 import { EventEmitter } from 'events';
 
 const prisma = new PrismaClient();
@@ -133,11 +135,15 @@ export interface ProgressUpdate {
 export class ResurrectionWorkflow extends EventEmitter {
   private mcpOrchestrator: MCPOrchestrator;
   private llmService: LLMService;
+  private specGenerator: KiroSpecGenerator;
+  private hookManager: HookManager;
 
   constructor(mcpOrchestrator: MCPOrchestrator, llmService: LLMService) {
     super();
     this.mcpOrchestrator = mcpOrchestrator;
     this.llmService = llmService;
+    this.specGenerator = new KiroSpecGenerator();
+    this.hookManager = new HookManager(mcpOrchestrator);
   }
 
   /**
@@ -145,12 +151,33 @@ export class ResurrectionWorkflow extends EventEmitter {
    * 
    * @param resurrectionId - The resurrection ID
    * @param abapCode - The ABAP source code to transform
+   * @param options - Workflow options (e.g., useKiroSpec)
    * @returns Complete resurrection result
    */
-  async execute(resurrectionId: string, abapCode: string): Promise<ResurrectionResult> {
+  async execute(
+    resurrectionId: string,
+    abapCode: string,
+    options?: { useKiroSpec?: boolean; projectName?: string }
+  ): Promise<ResurrectionResult> {
     console.log(`[ResurrectionWorkflow] Starting workflow for resurrection ${resurrectionId}`);
 
+    // Get resurrection details for hooks
+    const resurrection = await prisma.resurrection.findUnique({
+      where: { id: resurrectionId }
+    });
+
     try {
+      // Trigger resurrection.started hook
+      await this.hookManager.trigger('resurrection.started', {
+        resurrectionId,
+        resurrection
+      });
+
+      // Step 0 (Optional): Generate Kiro Spec if requested
+      if (options?.useKiroSpec && options?.projectName) {
+        await this.stepGenerateSpec(resurrectionId, abapCode, options.projectName);
+      }
+
       // Step 1: ANALYZE
       const analyzeResult = await this.stepAnalyze(resurrectionId, abapCode);
       
@@ -165,7 +192,21 @@ export class ResurrectionWorkflow extends EventEmitter {
       
       // Check if validation passed
       if (!validateResult.validation.passed) {
+        // Trigger quality.validation.failed hook
+        await this.hookManager.trigger('quality.validation.failed', {
+          resurrectionId,
+          resurrection,
+          validation: validateResult.validation
+        });
+        
         throw new Error(`Validation failed: ${validateResult.validation.errors.join(', ')}`);
+      } else {
+        // Trigger quality.validation.passed hook
+        await this.hookManager.trigger('quality.validation.passed', {
+          resurrectionId,
+          resurrection,
+          validation: validateResult.validation
+        });
       }
       
       // Step 5: DEPLOY
@@ -173,6 +214,17 @@ export class ResurrectionWorkflow extends EventEmitter {
       
       // Mark resurrection as completed
       await this.updateStatus(resurrectionId, 'COMPLETED');
+      
+      // Trigger resurrection.completed hook
+      await this.hookManager.trigger('resurrection.completed', {
+        resurrectionId,
+        resurrection: {
+          ...resurrection,
+          githubUrl: deployResult.deployment.githubUrl,
+          basUrl: deployResult.deployment.basUrl
+        },
+        capProject: generateResult.capProject
+      });
       
       console.log(`[ResurrectionWorkflow] Workflow completed successfully for resurrection ${resurrectionId}`);
       
@@ -190,10 +242,91 @@ export class ResurrectionWorkflow extends EventEmitter {
       // Update status to FAILED
       await this.updateStatus(resurrectionId, 'FAILED');
       
+      // Trigger resurrection.failed hook
+      await this.hookManager.trigger('resurrection.failed', {
+        resurrectionId,
+        resurrection,
+        error
+      });
+      
       // Log error
       await this.logError(resurrectionId, error);
       
       throw error;
+    }
+  }
+
+  /**
+   * Step 0 (Optional): Generate Kiro Spec documents
+   * 
+   * Requirements: 15.1, 15.2, 15.3, 15.4
+   */
+  private async stepGenerateSpec(
+    resurrectionId: string,
+    abapCode: string,
+    projectName: string
+  ): Promise<void> {
+    const startTime = Date.now();
+    
+    console.log(`[ResurrectionWorkflow] Step 0: GENERATE SPEC - Starting for resurrection ${resurrectionId}`);
+    
+    // Emit progress event
+    this.emitProgress(resurrectionId, 'ANALYZE', 'STARTED', 'Generating Kiro spec documents...');
+    
+    try {
+      // Quick analysis for spec generation
+      const quickAnalysis = await this.mcpOrchestrator.analyzeABAP(abapCode, {
+        extractBusinessLogic: true,
+        identifyDependencies: true,
+        detectPatterns: true
+      });
+
+      // Convert to ABAPAnalysis format
+      const analysis: ABAPAnalysis = {
+        objects: [{
+          name: projectName,
+          type: 'PROGRAM',
+          module: 'CUSTOM',
+          linesOfCode: abapCode.split('\n').length,
+          complexity: 5,
+          businessLogic: quickAnalysis.businessLogic,
+          dependencies: quickAnalysis.dependencies,
+          tables: quickAnalysis.tables
+        }],
+        totalLOC: abapCode.split('\n').length,
+        module: 'CUSTOM',
+        patterns: quickAnalysis.patterns
+      };
+
+      // Generate spec documents
+      const spec = await this.specGenerator.generateSpec(projectName, analysis);
+
+      // Save spec files
+      await this.specGenerator.saveSpecFiles(resurrectionId, projectName, spec);
+
+      const duration = Date.now() - startTime;
+
+      // Log spec generation
+      await this.logStep(resurrectionId, 'ANALYZE', {
+        input: { projectName },
+        output: { specGenerated: true, specPath: `.kiro/specs/resurrection-${projectName}` }
+      }, duration, 'COMPLETED');
+
+      // Emit progress event
+      this.emitProgress(resurrectionId, 'ANALYZE', 'COMPLETED', 'Kiro spec documents generated');
+
+      console.log(`[ResurrectionWorkflow] Step 0: GENERATE SPEC - Completed in ${duration}ms`);
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      console.error('[ResurrectionWorkflow] Spec generation failed, continuing without spec:', error);
+      
+      // Log but don't fail the workflow
+      await this.logStep(resurrectionId, 'ANALYZE', {
+        input: { projectName },
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }, duration, 'FAILED', error instanceof Error ? error.message : undefined);
     }
   }
 
@@ -529,6 +662,14 @@ export class ResurrectionWorkflow extends EventEmitter {
           details: { repoName: repo.name, repoUrl: repo.url },
           githubUrl: repo.url
         }
+      });
+      
+      // Trigger github.repository.created hook
+      await this.hookManager.trigger('github.repository.created', {
+        resurrectionId,
+        resurrection,
+        githubRepo: repo.name,
+        githubUrl: repo.url
       });
       
       const deployment: DeploymentResult = {

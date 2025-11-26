@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { SpecProgress } from '@/components/SpecProgress';
 
 interface Resurrection {
   id: string;
@@ -58,13 +59,23 @@ export default function ResurrectionResultsPage() {
 
   const [resurrection, setResurrection] = useState<Resurrection | null>(null);
   const [qualityReport, setQualityReport] = useState<QualityReport | null>(null);
+  const [specProgress, setSpecProgress] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchResurrectionData();
-  }, [resurrectionId]);
+    
+    // Poll for status updates if in progress
+    const pollInterval = setInterval(() => {
+      if (resurrection && !['COMPLETED', 'FAILED'].includes(resurrection.status)) {
+        fetchResurrectionData();
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    return () => clearInterval(pollInterval);
+  }, [resurrectionId, resurrection?.status]);
 
   const fetchResurrectionData = async () => {
     try {
@@ -89,6 +100,22 @@ export default function ResurrectionResultsPage() {
       } catch (err) {
         // Quality report might not exist yet
         console.log('Quality report not available');
+      }
+
+      // Fetch spec progress if available
+      if (resData.name) {
+        try {
+          const specResponse = await fetch(`/api/resurrections/${resurrectionId}/spec/progress?projectName=${resData.name}`);
+          if (specResponse.ok) {
+            const specData = await specResponse.json();
+            if (specData.success) {
+              setSpecProgress(specData.progress);
+            }
+          }
+        } catch (err) {
+          // Spec might not exist
+          console.log('Spec not available');
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -283,6 +310,19 @@ export default function ResurrectionResultsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Spec Progress */}
+        {specProgress && (
+          <div className="mb-6">
+            <SpecProgress
+              specPath={specProgress.specPath}
+              tasksCompleted={specProgress.tasksCompleted}
+              tasksTotal={specProgress.tasksTotal}
+              requirementsCount={specProgress.requirementsCount}
+              propertiesCount={specProgress.propertiesCount}
+            />
+          </div>
+        )}
 
         {/* Quality Report */}
         {qualityReport && (

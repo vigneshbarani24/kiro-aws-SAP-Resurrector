@@ -29,6 +29,7 @@ interface ResurrectionConfig {
   selectedObjects: string[];
   projectName: string;
   template: 'fiori-list' | 'fiori-object' | 'api-only';
+  useKiroSpec?: boolean;
 }
 
 type WizardStep = 'select' | 'configure' | 'name' | 'summary';
@@ -59,6 +60,7 @@ export function ResurrectionWizard({ open, onClose, abapObjects, onStartResurrec
   const [selectedObjects, setSelectedObjects] = useState<Set<string>>(new Set());
   const [projectName, setProjectName] = useState('');
   const [template, setTemplate] = useState<'fiori-list' | 'fiori-object' | 'api-only'>('fiori-list');
+  const [useKiroSpec, setUseKiroSpec] = useState(false);
 
   const steps: { id: WizardStep; name: string; icon: string }[] = [
     { id: 'select', name: 'Select Objects', icon: '📜' },
@@ -101,6 +103,7 @@ export function ResurrectionWizard({ open, onClose, abapObjects, onStartResurrec
       selectedObjects: Array.from(selectedObjects),
       projectName,
       template,
+      useKiroSpec,
     });
   };
 
@@ -262,6 +265,64 @@ export function ResurrectionWizard({ open, onClose, abapObjects, onStartResurrec
                   </Card>
                 ))}
               </div>
+
+              {/* Kiro Spec Option */}
+              <div className="pt-6 border-t border-[#5b21b6]">
+                <h3 className="text-xl font-semibold text-[#FF6B35] mb-4">
+                  Planning Approach
+                </h3>
+                
+                <Card
+                  className={`cursor-pointer transition-all duration-200 ${
+                    useKiroSpec
+                      ? 'border-[#FF6B35] bg-[#2e1065]/50 shadow-[0_0_15px_rgba(255,107,53,0.3)]'
+                      : 'border-[#5b21b6] hover:border-[#8b5cf6] hover:bg-[#2e1065]/30'
+                  }`}
+                  onClick={() => setUseKiroSpec(!useKiroSpec)}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3 text-[#F7F7FF]">
+                      <span className="text-3xl">📋</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          Plan with Kiro Spec
+                          {useKiroSpec && (
+                            <span className="text-[#FF6B35]">✓</span>
+                          )}
+                          <Badge className="bg-[#8b5cf6] text-white">
+                            Complex Projects
+                          </Badge>
+                        </div>
+                        <CardDescription className="text-[#a78bfa] font-normal mt-1">
+                          Use spec-driven planning for complex resurrections with requirements, design, and task tracking
+                        </CardDescription>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  {useKiroSpec && (
+                    <CardContent className="pt-0">
+                      <div className="bg-[#2e1065]/50 p-4 rounded-lg space-y-2 text-sm text-[#a78bfa]">
+                        <p className="flex items-start gap-2">
+                          <span className="text-[#FF6B35]">📝</span>
+                          <span>Generate requirements.md with EARS-formatted acceptance criteria from ABAP analysis</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="text-[#FF6B35]">🎨</span>
+                          <span>Create design.md with CDS models, architecture, and correctness properties</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="text-[#FF6B35]">✅</span>
+                          <span>Generate tasks.md with MCP references and implementation checklist</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="text-[#FF6B35]">📊</span>
+                          <span>Track spec completion progress throughout the resurrection</span>
+                        </p>
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              </div>
             </div>
           )}
 
@@ -353,12 +414,32 @@ export function ResurrectionWizard({ open, onClose, abapObjects, onStartResurrec
                     <p className="text-[#F7F7FF] font-semibold">{projectName}</p>
                   </div>
 
+                  {useKiroSpec && (
+                    <div className="pt-4 border-t border-[#5b21b6]">
+                      <p className="text-[#a78bfa] text-sm mb-1">Planning Approach</p>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-[#8b5cf6] text-white">
+                          📋 Kiro Spec Enabled
+                        </Badge>
+                        <span className="text-sm text-[#a78bfa]">
+                          Spec-driven planning with requirements, design, and tasks
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-4 border-t border-[#5b21b6] bg-[#2e1065]/50 p-4 rounded-lg">
                     <h4 className="text-[#FF6B35] font-semibold mb-2 flex items-center gap-2">
                       <span>🔮</span>
                       What happens next?
                     </h4>
                     <ul className="space-y-2 text-sm text-[#a78bfa]">
+                      {useKiroSpec && (
+                        <li className="flex items-start gap-2">
+                          <span className="text-[#FF6B35]">0.</span>
+                          <span>SPEC: Generate requirements, design, and task documents</span>
+                        </li>
+                      )}
                       <li className="flex items-start gap-2">
                         <span className="text-[#FF6B35]">1.</span>
                         <span>ANALYZE: Parse ABAP code and extract business logic</span>

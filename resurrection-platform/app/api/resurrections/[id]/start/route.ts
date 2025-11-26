@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { ResurrectionWorkflow } from '@/lib/workflow/resurrection-workflow';
-import { MCPOrchestrator } from '@/lib/mcp/orchestrator';
-import { LLMService } from '@/lib/llm/llm-service';
 
 const prisma = new PrismaClient();
 
@@ -76,49 +73,8 @@ export async function POST(
     });
 
     // Start workflow asynchronously (don't await - let it run in background)
-    const mcpOrchestrator = new MCPOrchestrator({
-      servers: [
-        {
-          name: 'abap-analyzer',
-          command: 'node',
-          args: ['./mcp-servers/abap-analyzer/index.js'],
-          timeout: 30000,
-          maxRetries: 3
-        },
-        {
-          name: 'sap-cap-generator',
-          command: 'node',
-          args: ['./mcp-servers/sap-cap-generator/index.js'],
-          timeout: 60000,
-          maxRetries: 3
-        },
-        {
-          name: 'sap-ui5-generator',
-          command: 'node',
-          args: ['./mcp-servers/sap-ui5-generator/index.js'],
-          timeout: 30000,
-          maxRetries: 3
-        },
-        {
-          name: 'github',
-          command: 'uvx',
-          args: ['mcp-server-github'],
-          env: {
-            GITHUB_PERSONAL_ACCESS_TOKEN: process.env.GITHUB_TOKEN || ''
-          },
-          timeout: 30000,
-          maxRetries: 3
-        }
-      ],
-      autoConnect: true,
-      healthCheckInterval: 60000
-    });
-    const llmService = new LLMService({
-      apiKey: process.env.OPENAI_API_KEY || '',
-      model: 'gpt-4-turbo-preview',
-      temperature: 0.7
-    });
-    const workflow = new ResurrectionWorkflow(mcpOrchestrator, llmService);
+    const { SimplifiedResurrectionWorkflow } = await import('@/lib/workflow/simplified-workflow');
+    const workflow = new SimplifiedResurrectionWorkflow();
     
     // Execute workflow in background
     workflow.execute(id, combinedABAPCode)

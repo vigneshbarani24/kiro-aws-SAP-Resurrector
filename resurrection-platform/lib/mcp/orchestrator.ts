@@ -438,42 +438,9 @@ export class MCPOrchestrator {
    * Generate CI/CD workflow configuration
    */
   private generateCIWorkflow(): string {
-    return `name: CI/CD Pipeline
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        
-    - name: Install dependencies
-      run: npm install
-      
-    - name: Build CAP application
-      run: npm run build
-      
-    - name: Run tests
-      run: npm test
-      
-    - name: Deploy to SAP BTP (if main branch)
-      if: github.ref == 'refs/heads/main'
-      run: |
-        echo "Deployment step - configure with your SAP BTP credentials"
-        # cf login -a \${{ secrets.CF_API }} -u \${{ secrets.CF_USER }} -p \${{ secrets.CF_PASSWORD }}
-        # cf push
-`;
+    // Import CI/CD templates
+    const { generateCompleteWorkflow } = require('../hooks/ci-cd-templates');
+    return generateCompleteWorkflow('resurrection-cap-app');
   }
 
   /**

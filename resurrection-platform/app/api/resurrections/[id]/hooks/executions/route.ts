@@ -1,0 +1,39 @@
+/**
+ * Hook Executions API
+ * 
+ * GET /api/resurrections/:id/hooks/executions - Get hook execution history
+ * 
+ * Requirements: 11.9
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const executions = await prisma.hookExecution.findMany({
+      where: {
+        resurrectionId: params.id
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return NextResponse.json({
+      executions,
+      count: executions.length
+    });
+  } catch (error) {
+    console.error('[API] Failed to get hook executions:', error);
+    return NextResponse.json(
+      { error: 'Failed to get hook executions' },
+      { status: 500 }
+    );
+  }
+}

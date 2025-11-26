@@ -1,0 +1,126 @@
+{
+  "hooks": [
+    {
+      "id": "on-resurrection-start",
+      "name": "Notify team on resurrection start",
+      "trigger": "resurrection.started",
+      "enabled": true,
+      "actions": [
+        {
+          "type": "mcp-call",
+          "server": "slack",
+          "method": "postMessage",
+          "params": {
+            "channel": "#resurrections",
+            "event": "started"
+          }
+        }
+      ]
+    },
+    {
+      "id": "on-resurrection-complete",
+      "name": "Quality validation on completion",
+      "trigger": "resurrection.completed",
+      "enabled": true,
+      "actions": [
+        {
+          "type": "agent-execution",
+          "message": "Validate quality for resurrection {{resurrection.id}}: Check CDS syntax, CAP structure, Clean Core compliance"
+        }
+      ]
+    },
+    {
+      "id": "on-quality-validation-passed",
+      "name": "Celebrate quality validation success",
+      "trigger": "quality.validation.passed",
+      "enabled": true,
+      "actions": [
+        {
+          "type": "mcp-call",
+          "server": "slack",
+          "method": "postMessage",
+          "params": {
+            "channel": "#resurrections",
+            "text": "✅ Quality validation passed for {{resurrection.name}}",
+            "event": "completed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "on-quality-failure",
+      "name": "Alert on quality validation failure",
+      "trigger": "quality.validation.failed",
+      "enabled": true,
+      "actions": [
+        {
+          "type": "mcp-call",
+          "server": "slack",
+          "method": "postMessage",
+          "params": {
+            "channel": "#resurrections",
+            "text": "⚠️ Quality validation failed for {{resurrection.name}}",
+            "event": "failed"
+          }
+        },
+        {
+          "type": "mcp-call",
+          "server": "github",
+          "method": "createIssue",
+          "params": {
+            "repo": "{{resurrection.githubRepo}}",
+            "title": "🔴 Quality Validation Failed",
+            "body": "Quality validation failed. Please review the validation report.",
+            "labels": ["bug", "quality-failure"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "on-deployment-success",
+      "name": "Celebrate deployment success",
+      "trigger": "deployment.succeeded",
+      "enabled": true,
+      "actions": [
+        {
+          "type": "mcp-call",
+          "server": "slack",
+          "method": "postMessage",
+          "params": {
+            "channel": "#resurrections",
+            "text": "🎉 Resurrection deployed successfully!",
+            "event": "deployed"
+          }
+        },
+        {
+          "type": "mcp-call",
+          "server": "github",
+          "method": "createRelease",
+          "params": {
+            "repo": "{{resurrection.githubRepo}}",
+            "tag_name": "v1.0.0",
+            "name": "Production Release",
+            "body": "Deployed to SAP BTP"
+          }
+        }
+      ]
+    },
+    {
+      "id": "setup-ci-cd",
+      "name": "Configure GitHub Actions CI/CD",
+      "trigger": "github.repository.created",
+      "enabled": true,
+      "actions": [
+        {
+          "type": "mcp-call",
+          "server": "github",
+          "method": "createWorkflow",
+          "params": {
+            "repo": "{{resurrection.githubRepo}}",
+            "workflow": "ci.yml"
+          }
+        }
+      ]
+    }
+  ]
+}
