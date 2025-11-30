@@ -16,6 +16,8 @@ import { promisify } from 'util';
 import { writeFile, mkdir, readdir, readFile as fsReadFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { FRSGenerator } from '../generators/frs-generator';
+import { GitHubTokenValidator } from '../github/token-validator';
 
 const execAsync = promisify(exec);
 const prisma = new PrismaClient();
@@ -38,6 +40,7 @@ interface AnalysisResult {
   module: string;
   complexity: number;
   documentation: string;
+  frsDocument?: string;
 }
 
 interface CAPProject {
@@ -52,11 +55,15 @@ export class HybridResurrectionWorkflow {
   private workDir: string;
   private openaiKey: string;
   private githubToken: string;
+  private frsGenerator: FRSGenerator;
+  private tokenValidator: GitHubTokenValidator;
 
   constructor() {
     this.workDir = join(process.cwd(), 'temp', 'resurrections');
     this.openaiKey = process.env.OPENAI_API_KEY || '';
     this.githubToken = process.env.GITHUB_TOKEN || '';
+    this.frsGenerator = new FRSGenerator();
+    this.tokenValidator = new GitHubTokenValidator();
   }
 
   /**
@@ -132,6 +139,20 @@ export class HybridResurrectionWorkflow {
         complexity: Math.round(complexity),
         documentation: this.generateDocumentation(module, complexity, businessLogic, tables, patterns)
       };
+
+      // Generate FRS document
+      console.log(`[HybridWorkflow] Generating FRS document...`);
+      const resurrection = await prisma.resurrection.findUnique({
+        where: { id: resurrectionId }
+      });
+
+      if (resurrection) {
+        const frsDocument = await this.frsGenerator.generateFRS(analysis, resurrection);
+        analysis.frsDocument = frsDocument;
+        console.log(`[HybridWorkflow] FRS document generated (${frsDocument.length} characters)`);
+      } else {
+        console.warn(`[HybridWorkflow] Could not generate FRS: resurrection not found`);
+      }
 
       const duration = Date.now() - startTime;
       await this.logStep(resurrectionId, 'ANALYZE', 'COMPLETED', duration, analysis);
@@ -253,6 +274,18 @@ export class HybridResurrectionWorkflow {
       const readme = this.generateREADME(resurrection, analysis);
       await writeFile(readmePath, readme);
 
+      // Create docs/ directory and write FRS document
+      if (analysis.frsDocument) {
+        console.log(`[HybridWorkflow] Writing FRS document to docs/FRS.md`);
+        const docsDir = join(projectPath, 'docs');
+        await mkdir(docsDir, { recursive: true });
+        const frsPath = join(docsDir, 'FRS.md');
+        await writeFile(frsPath, analysis.frsDocument);
+        console.log(`[HybridWorkflow] FRS document written (${analysis.frsDocument.length} characters)`);
+      } else {
+        console.warn(`[HybridWorkflow] No FRS document available to write`);
+      }
+
       // Read all files
       const files = await this.readProjectFiles(projectPath);
 
@@ -349,18 +382,48 @@ export class HybridResurrectionWorkflow {
 
       if (!resurrection) throw new Error('Resurrection not found');
 
+      // Check if GITHUB_TOKEN is configured
       if (!this.githubToken) {
-        throw new Error('GITHUB_TOKEN not set in environment variables');
+        console.error('[HybridWorkflow] GITHUB_TOKEN not configured');
+        throw new Error('GITHUB_TOKEN not configured. Please set GITHUB_TOKEN in your .env.local file. See setup guide for instructions.');
       }
+
+      // Sanitize token using GitHubTokenValidator
+      console.log('[HybridWorkflow] Sanitizing GitHub token...');
+      const sanitizedToken = this.tokenValidator.sanitizeToken(this.githubToken);
+      console.log(`[HybridWorkflow] Token sanitized: ${this.tokenValidator.maskToken(sanitizedToken)}`);
+
+      // Validate token and check for repo scope
+      console.log('[HybridWorkflow] Validating GitHub token...');
+      const validation = await this.tokenValidator.validateToken(sanitizedToken);
+
+      if (!validation.valid) {
+        const errorGuidance = this.tokenValidator.getErrorGuidance(validation);
+        console.error(`[HybridWorkflow] Token validation failed: ${validation.error}`);
+        console.error(`[HybridWorkflow] Guidance: ${errorGuidance}`);
+        throw new Error(`GitHub token invalid: ${errorGuidance}`);
+      }
+
+      console.log(`[HybridWorkflow] Token validated successfully for user: ${validation.username}`);
+      console.log(`[HybridWorkflow] Token scopes: ${validation.scopes.length > 0 ? validation.scopes.join(', ') : 'fine-grained token (checking repo access)'}`);
+
+      // Check for repo scope
+      const hasRepoScope = await this.tokenValidator.hasRepoScope(sanitizedToken);
+      if (!hasRepoScope) {
+        console.error('[HybridWorkflow] Token missing required "repo" scope');
+        throw new Error('GitHub token missing required "repo" scope. Please create a new Personal Access Token with repo permissions. Visit: https://github.com/settings/tokens/new');
+      }
+
+      console.log('[HybridWorkflow] Token has required "repo" scope');
 
       const repoName = `resurrection-${resurrection.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`;
 
-      // Create repo with GitHub API
+      // Create repo with GitHub API using sanitized token
       console.log(`[HybridWorkflow] Creating GitHub repo: ${repoName}`);
       const createResponse = await fetch('https://api.github.com/user/repos', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.githubToken}`,
+          'Authorization': `Bearer ${sanitizedToken}`,
           'Content-Type': 'application/json',
           'Accept': 'application/vnd.github+json'
         },

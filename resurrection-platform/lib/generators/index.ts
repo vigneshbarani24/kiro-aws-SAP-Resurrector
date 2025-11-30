@@ -8,3 +8,4 @@ export * from './types';
 export * from './mock-data-generator';
 export * from './cap-generator';
 export * from './ui5-generator';
+export * from './frs-generator';
