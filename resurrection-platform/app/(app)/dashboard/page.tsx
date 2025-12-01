@@ -564,7 +564,7 @@ export default function DashboardPage() {
                         )}
                         
                         {/* Bat-wing progress bar for quality score */}
-                        {resurrection.qualityScore && (
+                        {resurrection.qualityScore !== undefined && resurrection.qualityScore !== null && (
                           <div className="mb-2">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-[#a78bfa] text-xs">Quality Score</span>

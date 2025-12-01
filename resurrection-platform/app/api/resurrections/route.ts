@@ -7,14 +7,14 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, module, abapCode, userId } = body;
+    const { name, description, module, abapCode, abapObjectIds, userId } = body;
 
-    // Validation
-    if (!abapCode || typeof abapCode !== 'string' || abapCode.trim().length === 0) {
+    // Validation - either abapCode OR abapObjectIds must be provided
+    if (!abapCode && (!abapObjectIds || !Array.isArray(abapObjectIds) || abapObjectIds.length === 0)) {
       return NextResponse.json(
         { 
           error: 'Invalid request',
-          message: 'abapCode is required and must be a non-empty string'
+          message: 'Either abapCode or abapObjectIds must be provided'
         },
         { status: 400 }
       );
@@ -31,7 +31,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate lines of code
-    const linesOfCode = abapCode.split('\n').length;
+    let linesOfCode = 0;
+    let finalAbapCode = abapCode;
+    
+    if (abapObjectIds && abapObjectIds.length > 0) {
+      // Fetch ABAP objects and combine their code
+      const abapObjects = await prisma.aBAPObject.findMany({
+        where: {
+          id: { in: abapObjectIds }
+        }
+      });
+      
+      if (abapObjects.length === 0) {
+        return NextResponse.json(
+          { 
+            error: 'Invalid request',
+            message: 'No valid ABAP objects found with provided IDs'
+          },
+          { status: 400 }
+        );
+      }
+      
+      // Combine all ABAP code
+      finalAbapCode = abapObjects.map(obj => obj.content).join('\n\n');
+      linesOfCode = abapObjects.reduce((sum, obj) => sum + obj.linesOfCode, 0);
+    } else if (abapCode) {
+      linesOfCode = abapCode.split('\n').length;
+    }
 
     // Get or create default user
     let defaultUserId = userId;
@@ -61,8 +87,9 @@ export async function POST(request: NextRequest) {
         description: description || null,
         status: 'analyzing',
         module: module || 'CUSTOM',
-        abapCode,
+        abapCode: finalAbapCode,
         linesOfCode,
+        originalLOC: linesOfCode,
         userId: defaultUserId,
         workflowSteps: {
           create: [
@@ -80,6 +107,18 @@ export async function POST(request: NextRequest) {
         }
       }
     });
+
+    // Link ABAP objects to resurrection if provided
+    if (abapObjectIds && abapObjectIds.length > 0) {
+      await prisma.aBAPObject.updateMany({
+        where: {
+          id: { in: abapObjectIds }
+        },
+        data: {
+          resurrectionId: resurrection.id
+        }
+      });
+    }
 
     // TODO: Start resurrection workflow asynchronously
     // This will be implemented when the workflow engine is integrated
@@ -164,9 +203,9 @@ export async function GET(request: NextRequest) {
         module: r.module,
         githubUrl: r.githubUrl,
         basUrl: r.basUrl,
-        originalLOC: r.originalLOC,
-        locSaved: r.locSaved,
-        qualityScore: r.qualityScore,
+        originalLOC: r.originalLOC || r.linesOfCode || 0,
+        locSaved: r.locSaved || 0,
+        qualityScore: r.qualityScore || 0,
         abapObjectCount: r.abapObjects.length,
         transformationLogCount: r._count.transformationLogs,
         createdAt: r.createdAt,
