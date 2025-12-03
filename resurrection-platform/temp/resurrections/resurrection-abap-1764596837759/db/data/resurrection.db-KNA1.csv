@@ -1,0 +1,8 @@
+csv
+kunnr;land1;name1;ort01;regio;brsch;klimk
+1000000001;US;Best Solutions;New York;NY;1234;50000.00
+1000000002;DE;Gute Lösungen;Berlin;BE;5678;75000.00
+1000000003;FR;Solutions Supérieures;Paris;IDF;9101;60000.00
+1000000004;US;Superior Solutions;Chicago;IL;2345;80000.00
+1000000005;UK;Top Solutions;London;LON;6789;55000.00
+1000000006;AU;Ausgezeichnete Lösungen;Sydney;NSW;3456;65000.00

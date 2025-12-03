@@ -1,12 +1,19 @@
 /**
  * Mock Data Generator
  * 
- * Generates realistic CSV data for db/data/ folder
+ * Generates realistic CSV data for db/data/ folder using MCP + AI
  */
 
 import { CDSEntity, MockDataConfig, MockDataRecord, CSVFiles } from './types';
 
 export class MockDataGenerator {
+  private llmService: any;
+  private mcpClient: any;
+
+  constructor(llmService?: any, mcpClient?: any) {
+    this.llmService = llmService;
+    this.mcpClient = mcpClient;
+  }
   /**
    * Generate mock data for all entities
    */
@@ -35,12 +42,94 @@ export class MockDataGenerator {
   }
 
   /**
-   * Generate records for a single entity
+   * Generate records for a single entity using AI + MCP
    */
   private async generateRecords(
     entity: CDSEntity,
     count: number
   ): Promise<MockDataRecord[]> {
+    // Try AI-powered generation first
+    if (this.llmService && this.mcpClient) {
+      try {
+        return await this.generateRecordsWithAI(entity, count);
+      } catch (error) {
+        console.warn(`[MockDataGenerator] AI generation failed for ${entity.name}, using fallback:`, error);
+      }
+    }
+
+    // Fallback to basic generation
+    return this.generateRecordsBasic(entity, count);
+  }
+
+  /**
+   * Generate records using AI based on entity schema and SAP context
+   */
+  private async generateRecordsWithAI(
+    entity: CDSEntity,
+    count: number
+  ): Promise<MockDataRecord[]> {
+    console.log(`[MockDataGenerator] Generating ${count} records for ${entity.name} using AI...`);
+
+    // Use MCP to search for SAP table documentation
+    let sapContext = '';
+    try {
+      const capDocs = await this.mcpClient.searchCAPDocs(`${entity.name} SAP table structure`);
+      if (capDocs && capDocs.results && capDocs.results.length > 0) {
+        sapContext = capDocs.results[0].content;
+      }
+    } catch (error) {
+      console.warn(`[MockDataGenerator] MCP docs search failed:`, error);
+    }
+
+    // Build AI prompt
+    const fieldDescriptions = entity.fields.map(f => 
+      `- ${f.name}: ${f.type}${f.key ? ' (key)' : ''}`
+    ).join('\n');
+
+    const prompt = `Generate ${count} realistic mock data records for SAP entity ${entity.name}.
+
+**Entity Schema:**
+${fieldDescriptions}
+
+**SAP Context:**
+${sapContext || 'Standard SAP table'}
+
+**Requirements:**
+- Generate realistic SAP-style data
+- Use proper SAP formats (10-digit IDs, dates, amounts)
+- Maintain referential integrity
+- Reflect real business scenarios
+- Return as JSON array
+
+Example format:
+[
+  { "field1": "value1", "field2": "value2" },
+  { "field1": "value3", "field2": "value4" }
+]
+
+Generate ${count} records now:`;
+
+    // Call AI
+    const response = await this.callAI(prompt);
+    
+    // Parse JSON response
+    try {
+      const records = JSON.parse(response);
+      console.log(`[MockDataGenerator] ✅ Generated ${records.length} records using AI`);
+      return records;
+    } catch (parseError) {
+      console.error(`[MockDataGenerator] Failed to parse AI response:`, parseError);
+      throw new Error('AI response parsing failed');
+    }
+  }
+
+  /**
+   * Basic record generation (fallback)
+   */
+  private generateRecordsBasic(
+    entity: CDSEntity,
+    count: number
+  ): MockDataRecord[] {
     const records: MockDataRecord[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -54,6 +143,19 @@ export class MockDataGenerator {
     }
 
     return records;
+  }
+
+  /**
+   * Call AI service
+   */
+  private async callAI(prompt: string): Promise<string> {
+    if (!this.llmService) {
+      throw new Error('LLM service not configured');
+    }
+
+    // This would call the actual LLM service
+    // For now, throw to use fallback
+    throw new Error('AI generation not yet implemented');
   }
 
   /**

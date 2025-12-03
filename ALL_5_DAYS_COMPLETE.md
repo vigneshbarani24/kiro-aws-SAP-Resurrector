@@ -339,7 +339,7 @@ Not just a demo - a production-ready platform with:
 ### 4. Cost-Effective
 - $15 for complete demo
 - vs $5-50M manual approach
-- vs Enterprise licensing (SAP Nova AI)
+- vs Enterprise licensing costs
 
 ### 5. Open Source
 - Full transparency
@@ -353,13 +353,10 @@ Not just a demo - a production-ready platform with:
 
 ### Specifications:
 1. `.kiro/specs/abap-modernization.md`
-2. `.kiro/specs/sap-nova-ai-alternative.md`
-3. `.kiro/specs/nova-ai-complete-implementation.md`
-4. `.kiro/specs/custom-code-intelligence-implementation.md`
+2. `.kiro/specs/custom-code-intelligence-implementation.md`
 
 ### Steering:
 1. `.kiro/steering/sap-domain-knowledge.md`
-2. `.kiro/steering/sap-nova-ai-knowledge.md`
 
 ### MCP:
 1. `.kiro/settings/mcp.json`
@@ -419,7 +416,7 @@ Not just a demo - a production-ready platform with:
 5. **Complete Platform is Possible** - Built in 5 days with Kiro
 
 ### What We Built:
-1. **Open-source alternative to SAP Nova AI**
+1. **Open-source SAP modernization platform**
 2. **Production-ready architecture**
 3. **Complete documentation**
 4. **Working demo**
@@ -444,8 +441,8 @@ Not just a demo - a production-ready platform with:
 - 25,000+ potential customers
 
 **3. Innovation**
-- Open-source alternative to proprietary platform
-- AI-powered legacy modernization
+- Open-source SAP modernization platform
+- AI-powered legacy transformation
 - Complete full-stack solution
 - Community-driven approach
 
@@ -470,7 +467,7 @@ Not just a demo - a production-ready platform with:
 
 **We didn't just build a hackathon project.**
 **We built the future of SAP modernization.**
-**We built an open-source alternative to SAP Nova AI.**
+**We built an open-source AI-powered transformation platform.**
 **We built it in 5 days with Kiro.**
 
 **This is what's possible when you master all of Kiro's capabilities.**

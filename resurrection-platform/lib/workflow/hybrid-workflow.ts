@@ -18,6 +18,9 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { FRSGenerator } from '../generators/frs-generator';
 import { GitHubTokenValidator } from '../github/token-validator';
+import { UnifiedMCPClient } from '../mcp/unified-mcp-client';
+import { mcpLogger } from '../mcp/mcp-logger';
+import { createLLMService } from '../llm/llm-service';
 
 const execAsync = promisify(exec);
 const prisma = new PrismaClient();
@@ -57,6 +60,8 @@ export class HybridResurrectionWorkflow {
   private githubToken: string;
   private frsGenerator: FRSGenerator;
   private tokenValidator: GitHubTokenValidator;
+  private mcpClient: UnifiedMCPClient;
+  private mcpInitialized: boolean = false;
 
   constructor() {
     this.workDir = join(process.cwd(), 'temp', 'resurrections');
@@ -64,6 +69,10 @@ export class HybridResurrectionWorkflow {
     this.githubToken = process.env.GITHUB_TOKEN || '';
     this.frsGenerator = new FRSGenerator();
     this.tokenValidator = new GitHubTokenValidator();
+    this.mcpClient = new UnifiedMCPClient({
+      githubToken: this.githubToken,
+      autoConnect: true
+    });
   }
 
   /**
@@ -109,36 +118,103 @@ export class HybridResurrectionWorkflow {
       console.error(`[HybridWorkflow] Workflow failed:`, error);
       await this.updateStatus(resurrectionId, 'FAILED');
       throw error;
+    } finally {
+      // Cleanup MCP connections
+      if (this.mcpInitialized) {
+        try {
+          console.log(`[HybridWorkflow] Disconnecting MCP clients...`);
+          await this.mcpClient.disconnect();
+          this.mcpInitialized = false;
+          console.log(`[HybridWorkflow] ✅ MCP clients disconnected`);
+        } catch (cleanupError) {
+          console.warn(`[HybridWorkflow] ⚠️ MCP cleanup warning:`, cleanupError);
+        }
+      }
     }
   }
 
   /**
-   * Step 1: ANALYZE - Use OpenAI to analyze ABAP
+   * Step 1: ANALYZE - Use ABAP Analyzer MCP + CAP MCP
    */
   private async stepAnalyze(resurrectionId: string, abapCode: string): Promise<AnalysisResult> {
     const startTime = Date.now();
-    console.log(`[HybridWorkflow] Step 1: ANALYZE`);
+    console.log(`[HybridWorkflow] Step 1: ANALYZE - Using MCP Servers`);
 
     await this.updateStatus(resurrectionId, 'ANALYZING');
     await this.logStep(resurrectionId, 'ANALYZE', 'STARTED');
 
     try {
-      // Extract basic info from ABAP code
-      const tables = this.extractTables(abapCode);
-      const module = this.detectModule(tables);
-      const businessLogic = this.extractBusinessLogic(abapCode);
-      const patterns = this.detectPatterns(abapCode);
-      const complexity = Math.min(10, Math.max(1, abapCode.split('\n').length / 20));
+      // Initialize MCP client if not already done
+      if (!this.mcpInitialized) {
+        console.log(`[HybridWorkflow] Initializing MCP connections...`);
+        try {
+          await this.mcpClient.initializeConnections();
+          this.mcpInitialized = true;
+          console.log(`[HybridWorkflow] ✅ MCP connections initialized`);
+        } catch (error) {
+          console.warn(`[HybridWorkflow] ⚠️ MCP initialization failed, falling back to basic analysis:`, error);
+        }
+      }
 
-      const analysis: AnalysisResult = {
-        businessLogic,
-        dependencies: [],
-        tables,
-        patterns,
-        module,
-        complexity: Math.round(complexity),
-        documentation: this.generateDocumentation(module, complexity, businessLogic, tables, patterns)
-      };
+      let analysis: AnalysisResult;
+
+      // Try to use ABAP Analyzer MCP for deep analysis
+      if (this.mcpInitialized) {
+        try {
+          console.log(`[HybridWorkflow] Using ABAP Analyzer MCP for code analysis...`);
+          
+          // Call ABAP Analyzer with logging
+          const mcpAnalysis = await this.logMCPCall(
+            resurrectionId,
+            'abap-analyzer',
+            'analyzeCode',
+            { codeLength: abapCode.length, preview: abapCode.substring(0, 100) },
+            () => this.mcpClient.analyzeABAP(abapCode)
+          );
+          
+          const tables = mcpAnalysis.metadata.tables || [];
+          const patterns = mcpAnalysis.patterns || [];
+          
+          console.log(`[HybridWorkflow] ✅ ABAP Analyzer MCP analysis complete`);
+          console.log(`[HybridWorkflow]   - Tables: ${tables.length}`);
+          console.log(`[HybridWorkflow]   - Business Logic: ${mcpAnalysis.businessLogic.length} patterns`);
+          console.log(`[HybridWorkflow]   - Complexity: ${mcpAnalysis.metadata.complexity}`);
+
+          // Search CAP documentation for relevant patterns
+          console.log(`[HybridWorkflow] Searching CAP docs for ${mcpAnalysis.metadata.module} patterns...`);
+          const searchQuery = `${mcpAnalysis.metadata.module} entity service`;
+          const capDocs = await this.logMCPCall(
+            resurrectionId,
+            'sap-cap',
+            'search_docs',
+            { query: searchQuery },
+            () => this.mcpClient.searchCAPDocs(searchQuery)
+          );
+          console.log(`[HybridWorkflow] ✅ Found ${capDocs.results.length} CAP documentation results`);
+
+          analysis = {
+            businessLogic: mcpAnalysis.businessLogic,
+            dependencies: mcpAnalysis.dependencies,
+            tables: tables,
+            patterns: patterns,
+            module: mcpAnalysis.metadata.module,
+            complexity: mcpAnalysis.metadata.complexity,
+            documentation: this.generateDocumentation(
+              mcpAnalysis.metadata.module,
+              mcpAnalysis.metadata.complexity,
+              mcpAnalysis.businessLogic,
+              tables,
+              patterns
+            )
+          };
+        } catch (mcpError) {
+          console.warn(`[HybridWorkflow] ⚠️ MCP analysis failed, falling back to basic analysis:`, mcpError);
+          analysis = this.performBasicAnalysis(abapCode);
+        }
+      } else {
+        // Fallback to basic analysis
+        analysis = this.performBasicAnalysis(abapCode);
+      }
 
       // Generate FRS document
       console.log(`[HybridWorkflow] Generating FRS document...`);
@@ -244,9 +320,9 @@ export class HybridResurrectionWorkflow {
       console.log(`[HybridWorkflow] Running: cds init ${projectName}`);
       await execAsync(`cds init ${projectName}`, { cwd: this.workDir });
 
-      // Generate real CDS schema
+      // Generate real CDS schema using AI
       const schemaPath = join(projectPath, 'db', 'schema.cds');
-      const schema = this.generateCDSSchema(analysis, plan);
+      const schema = await this.generateCDSSchemaWithAI(resurrectionId, analysis, plan);
       await writeFile(schemaPath, schema);
 
       // Generate real service
@@ -285,6 +361,50 @@ export class HybridResurrectionWorkflow {
       } else {
         console.warn(`[HybridWorkflow] No FRS document available to write`);
       }
+
+      // Generate UI5 Fiori app using UI5 MCP (if MCP available)
+      if (this.mcpInitialized) {
+        try {
+          console.log(`[HybridWorkflow] Creating UI5 Fiori app using UI5 MCP...`);
+          
+          const ui5AppPath = join(projectPath, 'app');
+          await mkdir(ui5AppPath, { recursive: true });
+
+          const ui5Config = {
+            appNamespace: `resurrection.${resurrection.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+            basePath: ui5AppPath,
+            createAppDirectory: true,
+            typescript: true,
+            framework: 'SAPUI5' as const,
+            oDataV4Url: `/odata/v4/${plan.services[0].name}`,
+            oDataEntitySet: plan.entities[0]?.name,
+            entityProperties: plan.entities[0]?.fields.slice(0, 5)
+          };
+
+          // Call UI5 MCP with logging
+          await this.logMCPCall(
+            resurrectionId,
+            'sap-ui5',
+            'create_ui5_app',
+            {
+              appNamespace: ui5Config.appNamespace,
+              framework: ui5Config.framework,
+              typescript: ui5Config.typescript,
+              oDataEntitySet: ui5Config.oDataEntitySet
+            },
+            () => this.mcpClient.createUI5App(ui5Config)
+          );
+          
+          console.log(`[HybridWorkflow] ✅ UI5 Fiori app created successfully`);
+        } catch (ui5Error) {
+          console.warn(`[HybridWorkflow] ⚠️ UI5 app creation failed (non-critical):`, ui5Error);
+        }
+      }
+
+      // Generate mock data for testing using AI
+      console.log(`[HybridWorkflow] Generating mock data with AI...`);
+      await this.generateMockData(resurrectionId, projectPath, analysis, plan);
+      console.log(`[HybridWorkflow] ✅ Mock data generated`);
 
       // Read all files
       const files = await this.readProjectFiles(projectPath);
@@ -482,6 +602,108 @@ export class HybridResurrectionWorkflow {
     }
   }
 
+  /**
+   * Log MCP call with timing and results
+   */
+  private async logMCPCall<T>(
+    resurrectionId: string,
+    serverName: string,
+    toolName: string,
+    params: any,
+    operation: () => Promise<T>
+  ): Promise<T> {
+    const startTime = Date.now();
+    
+    try {
+      console.log(`[MCP] Calling ${serverName}.${toolName}...`);
+      const result = await operation();
+      const duration = Date.now() - startTime;
+      
+      // Log to MCP logger
+      await mcpLogger.logCall(
+        resurrectionId,
+        serverName,
+        toolName,
+        params,
+        result,
+        undefined,
+        duration
+      );
+      
+      // Also log to transformation logs
+      await this.logStep(resurrectionId, `MCP_${serverName.toUpperCase()}`, 'COMPLETED', duration, {
+        tool: toolName,
+        params: this.sanitizeForLog(params),
+        success: true
+      });
+      
+      console.log(`[MCP] ✅ ${serverName}.${toolName} completed in ${duration}ms`);
+      return result;
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Log error to MCP logger
+      await mcpLogger.logCall(
+        resurrectionId,
+        serverName,
+        toolName,
+        params,
+        undefined,
+        errorMessage,
+        duration
+      );
+      
+      // Also log to transformation logs
+      await this.logStep(resurrectionId, `MCP_${serverName.toUpperCase()}`, 'FAILED', duration, null, errorMessage);
+      
+      console.error(`[MCP] ❌ ${serverName}.${toolName} failed after ${duration}ms:`, errorMessage);
+      throw error;
+    }
+  }
+
+  /**
+   * Sanitize data for logging (remove sensitive info, truncate large objects)
+   */
+  private sanitizeForLog(data: any): any {
+    if (!data) return data;
+    
+    const str = JSON.stringify(data);
+    if (str.length > 500) {
+      return {
+        _truncated: true,
+        _size: str.length,
+        _preview: str.substring(0, 500) + '...'
+      };
+    }
+    
+    return data;
+  }
+
+  /**
+   * Perform basic ABAP analysis (fallback when MCP unavailable)
+   */
+  private performBasicAnalysis(abapCode: string): AnalysisResult {
+    console.log(`[HybridWorkflow] Performing basic ABAP analysis (no MCP)`);
+    
+    const tables = this.extractTables(abapCode);
+    const module = this.detectModule(tables);
+    const businessLogic = this.extractBusinessLogic(abapCode);
+    const patterns = this.detectPatterns(abapCode);
+    const complexity = Math.min(10, Math.max(1, abapCode.split('\n').length / 20));
+
+    return {
+      businessLogic,
+      dependencies: [],
+      tables,
+      patterns,
+      module,
+      complexity: Math.round(complexity),
+      documentation: this.generateDocumentation(module, complexity, businessLogic, tables, patterns)
+    };
+  }
+
   // Helper methods
   private extractTables(abapCode: string): string[] {
     const tables: string[] = [];
@@ -535,8 +757,60 @@ ${patterns.map(p => `- ${p}`).join('\n')}
 `;
   }
 
-  private generateCDSSchema(analysis: AnalysisResult, plan: any): string {
-    const entities = plan.entities.map((entity: any) => `
+  /**
+   * Generate CDS schema using AI based on ABAP analysis
+   */
+  private async generateCDSSchemaWithAI(resurrectionId: string, analysis: AnalysisResult, plan: any): Promise<string> {
+    console.log(`[HybridWorkflow] Generating CDS schema using AI...`);
+    
+    try {
+      const llmService = createLLMService();
+      
+      const prompt = `You are an SAP CAP expert. Generate CDS entity definitions based on this ABAP analysis:
+
+**Module:** ${analysis.module}
+**Tables:** ${analysis.tables.join(', ')}
+**Business Logic:** ${analysis.businessLogic.join(', ')}
+
+For each table, generate realistic field definitions with:
+- Proper SAP field names and types
+- Key fields
+- Descriptive comments
+- Appropriate data types (String, Decimal, Date, Time, etc.)
+
+Return ONLY valid CDS syntax, no explanations.
+
+Example format:
+entity VBAK {
+  key vbeln : String(10);  // Sales Document Number
+  erdat : Date;           // Created On
+  kunnr : String(10);     // Sold-to Party
+  netwr : Decimal(15,2);  // Net Value
+}`;
+
+      const response = await this.callAI(resurrectionId, prompt);
+      
+      // Wrap in namespace
+      return `namespace resurrection.db;
+
+using { cuid, managed } from '@sap/cds/common';
+
+${response}
+
+// Business logic preserved from ABAP:
+// ${analysis.businessLogic.join('\n// ')}
+`;
+    } catch (error) {
+      console.warn(`[HybridWorkflow] AI generation failed, using fallback:`, error);
+      return this.generateCDSSchemaFallback(analysis, plan);
+    }
+  }
+
+  /**
+   * Fallback CDS schema generation (basic)
+   */
+  private generateCDSSchemaFallback(analysis: AnalysisResult, plan: any): string {
+    const entityDefinitions = plan.entities.map((entity: any) => `
 entity ${entity.name} {
   key ID : UUID;
   ${entity.fields.filter((f: string) => f !== 'ID').map((f: string) => `${f} : String;`).join('\n  ')}
@@ -546,11 +820,71 @@ entity ${entity.name} {
 
 using { cuid, managed } from '@sap/cds/common';
 
-${entities}
+${entityDefinitions}
 
 // Business logic preserved from ABAP:
 // ${analysis.businessLogic.join('\n// ')}
 `;
+  }
+
+  /**
+   * Call AI with logging
+   */
+  private async callAI(resurrectionId: string, prompt: string): Promise<string> {
+    const startTime = Date.now();
+    
+    try {
+      console.log(`[AI] Generating content...`);
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4-turbo-preview',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an SAP CAP expert. Generate only valid CDS syntax, no explanations or markdown.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0].message.content;
+      
+      const duration = Date.now() - startTime;
+      
+      // Log AI call
+      await this.logStep(resurrectionId, 'AI_GENERATION', 'COMPLETED', duration, {
+        promptLength: prompt.length,
+        responseLength: content.length,
+        model: 'gpt-4-turbo-preview'
+      });
+      
+      console.log(`[AI] ✅ Content generated in ${duration}ms`);
+      
+      return content.replace(/```cds\n?/g, '').replace(/```\n?/g, '').trim();
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      await this.logStep(resurrectionId, 'AI_GENERATION', 'FAILED', duration, null, 
+        error instanceof Error ? error.message : 'AI generation failed');
+      throw error;
+    }
   }
 
   private generateServiceCDS(analysis: AnalysisResult, plan: any): string {
@@ -605,6 +939,164 @@ cds watch
 
 **Generated by SAP Resurrection Platform**
 `;
+  }
+
+  /**
+   * Generate realistic mock data using AI based on ABAP analysis
+   */
+  private async generateMockData(resurrectionId: string, projectPath: string, analysis: AnalysisResult, plan: any): Promise<void> {
+    const dataDir = join(projectPath, 'db', 'data');
+    await mkdir(dataDir, { recursive: true });
+
+    console.log(`[HybridWorkflow] Generating mock data using AI...`);
+
+    // Read the generated schema to understand field structure
+    const schemaPath = join(projectPath, 'db', 'schema.cds');
+    const schemaContent = await fsReadFile(schemaPath, 'utf-8');
+
+    // Generate data for each entity using AI
+    for (const entity of plan.entities) {
+      const tableName = entity.name;
+      
+      try {
+        const prompt = `Generate realistic CSV mock data for SAP table ${tableName}.
+
+**Context:**
+- Module: ${analysis.module}
+- Business Logic: ${analysis.businessLogic.join(', ')}
+- Table: ${tableName}
+
+**Schema:**
+${this.extractEntitySchema(schemaContent, tableName)}
+
+**Requirements:**
+- Generate 5-7 realistic records
+- Use proper SAP data formats (dates, numbers, IDs)
+- Maintain referential integrity
+- Reflect business logic from ABAP
+- CSV format with semicolon separator
+- Include header row
+
+Return ONLY the CSV content, no explanations.`;
+
+        const csvContent = await this.callAI(resurrectionId, prompt);
+        
+        // Write CSV file
+        const csvPath = join(dataDir, `resurrection.db-${tableName}.csv`);
+        await writeFile(csvPath, csvContent);
+        
+        const recordCount = csvContent.split('\n').length - 1;
+        console.log(`[HybridWorkflow] Generated mock data: ${tableName} (${recordCount} records)`);
+        
+      } catch (error) {
+        console.warn(`[HybridWorkflow] AI mock data generation failed for ${tableName}, using fallback`);
+        
+        // Fallback to basic mock data
+        const csvContent = `ID;createdAt;modifiedAt;name;description
+${Array.from({ length: 5 }, (_, i) => 
+  `${i + 1};2024-01-${15 + i}T10:00:00Z;2024-01-${15 + i}T10:00:00Z;${tableName} ${i + 1};Sample ${tableName} record ${i + 1}`
+).join('\n')}`;
+        
+        const csvPath = join(dataDir, `resurrection.db-${tableName}.csv`);
+        await writeFile(csvPath, csvContent);
+      }
+    }
+
+    // Generate data README
+    const readmePath = join(dataDir, 'README.md');
+    const readmeContent = `# Mock Data
+
+This directory contains realistic mock data generated from the original ABAP code analysis.
+
+## Data Files
+
+${plan.entities.map((e: any) => `- **${e.name}.csv** - ${this.getTableDescription(e.name)}`).join('\n')}
+
+## Business Logic
+
+The mock data reflects the business logic from the original ABAP:
+
+${analysis.businessLogic.map((logic: string) => `- ${logic}`).join('\n')}
+
+## Usage
+
+To load the data:
+
+\`\`\`bash
+cds deploy --to sqlite
+\`\`\`
+
+Or for testing:
+
+\`\`\`bash
+cds watch
+\`\`\`
+
+The data will be automatically loaded into the in-memory database.
+
+## Data Relationships
+
+- **VBAK** (Sales Orders) → **VBAP** (Order Items) via \`vbeln\`
+- **VBAK** (Sales Orders) → **KNA1** (Customers) via \`kunnr\`
+- **VBAP** (Order Items) → **KONV** (Pricing) via \`vbeln\` + \`posnr\`
+
+## Sample Queries
+
+\`\`\`sql
+-- Get order with items
+SELECT * FROM VBAK 
+JOIN VBAP ON VBAK.vbeln = VBAP.vbeln 
+WHERE VBAK.vbeln = '0000000001';
+
+-- Get customer orders
+SELECT * FROM VBAK 
+WHERE kunnr = '0000100001';
+
+-- Calculate order total with pricing
+SELECT 
+  v.vbeln,
+  SUM(vp.netwr) as subtotal,
+  SUM(k.kwert) as discount,
+  SUM(vp.netwr) - SUM(k.kwert) as total
+FROM VBAK v
+JOIN VBAP vp ON v.vbeln = vp.vbeln
+LEFT JOIN KONV k ON v.vbeln = k.knumv
+GROUP BY v.vbeln;
+\`\`\`
+`;
+    await writeFile(readmePath, readmeContent);
+  }
+
+  /**
+   * Extract entity schema from CDS file
+   */
+  private extractEntitySchema(schemaContent: string, entityName: string): string {
+    const entityRegex = new RegExp(`entity ${entityName}\\s*{([^}]+)}`, 's');
+    const match = schemaContent.match(entityRegex);
+    
+    if (match) {
+      return `entity ${entityName} {\n${match[1]}\n}`;
+    }
+    
+    return `entity ${entityName} { key ID : UUID; }`;
+  }
+
+  /**
+   * Get human-readable description for SAP tables
+   */
+  private getTableDescription(tableName: string): string {
+    const descriptions: Record<string, string> = {
+      'VBAK': 'Sales Document Header (Orders)',
+      'VBAP': 'Sales Document Items (Order Line Items)',
+      'KNA1': 'Customer Master Data',
+      'KONV': 'Pricing Conditions',
+      'MARA': 'Material Master',
+      'EKKO': 'Purchase Order Header',
+      'EKPO': 'Purchase Order Items',
+      'BKPF': 'Accounting Document Header',
+      'BSEG': 'Accounting Document Line Items'
+    };
+    return descriptions[tableName] || `${tableName} Data`;
   }
 
   private async readProjectFiles(projectPath: string): Promise<Array<{ path: string; content: string }>> {

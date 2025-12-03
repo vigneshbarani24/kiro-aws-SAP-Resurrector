@@ -4,7 +4,7 @@
 
 This document defines the technical architecture for integrating all 5 MCP servers into the Resurrection Platform to create a fully automated ABAP-to-CAP transformation workflow.
 
-**Goal:** Build an open-source alternative to SAP Nova AI using proven MCP servers and Kiro AI orchestration.
+**Goal:** Build an open-source SAP modernization platform using proven MCP servers and Kiro AI orchestration.
 
 **Status:** All 5 MCP servers tested and working ✅
 
@@ -1061,9 +1061,9 @@ NEXTAUTH_SECRET=***
 
 ### Competitive Positioning
 
-**vs SAP Nova AI:**
-- ✅ Open source (vs proprietary)
-- ✅ Free/affordable (vs expensive licensing)
+**Platform Advantages:**
+- ✅ Open source and transparent
+- ✅ Free/affordable pricing
 - ✅ Transparent (vs black box)
 - ✅ Customizable (vs locked-in)
 - ✅ Community-driven (vs vendor-controlled)
