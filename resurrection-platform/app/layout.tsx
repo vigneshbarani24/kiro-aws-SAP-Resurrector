@@ -39,7 +39,7 @@ export default function RootLayout({
           <ErrorBoundary>
             {children}
           </ErrorBoundary>
-          <Toaster 
+          {/* <Toaster 
             position="top-right"
             toastOptions={{
               style: {
@@ -48,7 +48,7 @@ export default function RootLayout({
                 border: '1px solid #5b21b6',
               },
             }}
-          />
+          /> */}
         </ThemeProvider>
       </body>
     </html>
