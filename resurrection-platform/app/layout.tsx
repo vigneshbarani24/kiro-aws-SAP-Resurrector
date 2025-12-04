@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -36,9 +35,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
+          {children}
           <Toaster 
             position="top-right"
             toastOptions={{
