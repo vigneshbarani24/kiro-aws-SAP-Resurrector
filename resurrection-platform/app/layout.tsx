@@ -30,16 +30,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* <ThemeProvider
+        <ThemeProvider
           attribute="class"
           defaultTheme="dark"
-          enableSystem
+          enableSystem={false}
           disableTransitionOnChange
-        > */}
-          {/* <ErrorBoundary> */}
+        >
+          <ErrorBoundary>
             {children}
-          {/* </ErrorBoundary> */}
-          {/* <Toaster 
+          </ErrorBoundary>
+          <Toaster 
             position="top-right"
             toastOptions={{
               style: {
@@ -48,8 +48,8 @@ export default function RootLayout({
                 border: '1px solid #5b21b6',
               },
             }}
-          /> */}
-        {/* </ThemeProvider> */}
+          />
+        </ThemeProvider>
       </body>
     </html>
   );
