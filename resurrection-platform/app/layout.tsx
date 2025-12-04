@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,19 +30,26 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: '#1a0f2e',
-              color: '#F7F7FF',
-              border: '1px solid #5b21b6',
-            },
-          }}
-        />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#1a0f2e',
+                color: '#F7F7FF',
+                border: '1px solid #5b21b6',
+              },
+            }}
+          />
+        </ThemeProvider>
       </body>
     </html>
   );
