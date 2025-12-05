@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 export default function NotFound() {
   return (
     <div style={{
@@ -17,18 +15,19 @@ export default function NotFound() {
       <p style={{ marginBottom: '1rem', color: '#a78bfa' }}>
         Could not find requested resource
       </p>
-      <Link
+      <a
         href="/"
         style={{
           padding: '0.5rem 1rem',
           background: '#8b5cf6',
           color: '#F7F7FF',
           borderRadius: '0.375rem',
-          textDecoration: 'none'
+          textDecoration: 'none',
+          display: 'inline-block'
         }}
       >
         Return Home
-      </Link>
+      </a>
     </div>
   )
 }
